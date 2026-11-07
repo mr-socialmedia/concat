@@ -38,7 +38,7 @@ impl Studio {
                 return Err(t("studio.projectOpenThroughRemote"));
             }
             // Another process has it - a second window, an agent's
-            // `concat --mcp`, the CLI - and two saving one folder lose
+            // `cutzone --mcp`, the CLI - and two saving one folder lose
             // each other's work.
             Err(concat_api::Refusal::Elsewhere(owner)) => {
                 let pid = owner

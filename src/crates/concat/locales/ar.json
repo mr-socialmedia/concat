@@ -704,7 +704,6 @@
   "start.couldNotOpenLink": "تعذّر فتح {0}: {1}",
   "start.create": "إنشاء",
   "start.creating": "جارٍ الإنشاء…",
-  "start.discordNote": "اطرح أسئلتك وشارك ما صنعته",
   "start.documentation": "التوثيق",
   "start.documentationNote": "دليل لكل لوحة وأداة",
   "start.dropHint": "يمكنك أيضًا إفلات مجلد مشروع، أو وسائط لبدء مشروع جديد، على هذه النافذة.",

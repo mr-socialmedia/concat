@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Jareer Abdullah
 
 //! The MCP server on its own, for development and the end-to-end test.
-//! What ships is the same server inside the app: `concat --mcp`.
+//! What ships is the same server inside the app: `cutzone --mcp`.
 //!
 //! usage: concat-mcp [auto|window|headless]   (or CONCAT_MCP_MODE)
 
@@ -20,7 +20,7 @@ fn main() -> ExitCode {
     match concat_mcp::run(mode) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
-            eprintln!("concat mcp: {error}");
+            eprintln!("cutzone mcp: {error}");
             ExitCode::FAILURE
         }
     }

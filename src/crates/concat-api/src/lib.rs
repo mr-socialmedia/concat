@@ -124,7 +124,7 @@ pub enum Refusal {
     /// The other side of this process has it: the window, or the API it
     /// serves.
     Here(Holder),
-    /// Another process has it - a second window, `concat --mcp`, the CLI -
+    /// Another process has it - a second window, `cutzone --mcp`, the CLI -
     /// as its lock file says.
     Elsewhere(lock::Owner),
 }
@@ -163,7 +163,7 @@ struct Claim {
 /// to clone; every clone is the same register.
 ///
 /// Each claimed folder is also locked against every other process
-/// ([`lock::ProjectLock`]): a second window, `concat --mcp` working on its
+/// ([`lock::ProjectLock`]): a second window, `cutzone --mcp` working on its
 /// own, the CLI. The lock goes with the claim, and with the process if it
 /// dies, so a crash leaves a folder the next opener takes over.
 #[derive(Clone, Default)]
@@ -558,7 +558,7 @@ impl Api {
             // go through that window instead of around it.
             let how = match &refusal {
                 Refusal::Elsewhere(owner) if owner.role == "window" => {
-                    ". To work on it from an agent, turn on Settings > Automation in that window and run the agent with `concat --mcp window`; the project on screen stays the window's until live mode lands"
+                    ". To work on it from an agent, turn on Settings > Automation in that window and run the agent with `cutzone --mcp window`; the project on screen stays the window's until live mode lands"
                 }
                 Refusal::Elsewhere(_) => ". Close it there first",
                 Refusal::Here(_) => "",
@@ -1758,7 +1758,7 @@ mod tests {
     }
 
     /// Two registers are two processes as far as the lock goes: an API
-    /// that does not share the window's register - `concat --mcp` on its
+    /// that does not share the window's register - `cutzone --mcp` on its
     /// own - is kept off a folder the window has, and told the way in.
     #[test]
     fn a_project_another_process_holds_is_refused_with_the_way_in() {
@@ -1778,7 +1778,7 @@ mod tests {
             refused.message
         );
         assert!(
-            refused.message.contains("concat --mcp window"),
+            refused.message.contains("cutzone --mcp window"),
             "{}",
             refused.message
         );

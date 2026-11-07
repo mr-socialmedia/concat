@@ -556,7 +556,7 @@ pub fn select_backend(
     // or a task switcher files the running window under the launcher it
     // came from - its icon, its pin - rather than as an unknown app. Slint
     // ignores it off Linux and the BSDs.
-    let _ = slint::set_xdg_app_id("concat");
+    let _ = slint::set_xdg_app_id(concat_host::brand::PACKAGE);
     Ok(gpu)
 }
 

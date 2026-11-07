@@ -139,7 +139,7 @@ fn an_agent_edits_previews_and_exports_a_project_headless() {
     );
     let welcome = &welcome["result"];
     assert_eq!(welcome["protocolVersion"], "2025-06-18");
-    assert_eq!(welcome["serverInfo"]["name"], "concat");
+    assert_eq!(welcome["serverInfo"]["name"], "cutzone");
     assert!(welcome["capabilities"]["tools"].is_object());
     assert!(
         welcome["instructions"]
@@ -357,7 +357,7 @@ fn a_modern_client_discovers_and_is_told_which_versions_are_spoken() {
     );
     assert_eq!(
         result["_meta"]["io.modelcontextprotocol/serverInfo"]["name"],
-        "concat"
+        "cutzone"
     );
 
     let (_, listed) = agent.ask("tools/list", json!({ "_meta": meta("2026-07-28") }));

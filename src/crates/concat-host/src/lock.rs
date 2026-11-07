@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Jareer Abdullah
 
-//! One process at a time on a project folder: the window, `concat --mcp`,
+//! One process at a time on a project folder: the window, `cutzone --mcp`,
 //! `concat-cli`, a second window.
 //!
 //! Two processes editing one folder each save their own document over the

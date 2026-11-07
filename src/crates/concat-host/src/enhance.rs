@@ -706,7 +706,7 @@ mod tests {
     /// it. Needs the fetched model and ffmpeg on the path.
     #[test]
     fn a_span_is_enhanced_on_its_own() {
-        let Some(data) = ["app.concat.editor", "org.standalones.concat"]
+        let Some(data) = [crate::brand::IDENTIFIER]
             .iter()
             .filter_map(|id| {
                 let p = PathBuf::from(std::env::var_os("HOME")?)
@@ -816,7 +816,7 @@ mod tests {
         if !made.is_ok_and(|s| s.success()) {
             return;
         }
-        let data = ["app.concat.editor", "org.standalones.concat"]
+        let data = [crate::brand::IDENTIFIER]
             .iter()
             .filter_map(|id| {
                 let p = PathBuf::from(std::env::var_os("HOME")?)
@@ -851,7 +851,7 @@ mod tests {
     /// GPU working in half floats. Needs the fetched model and a GPU.
     #[test]
     fn the_gpu_enhances_as_onnx_runtime_does() {
-        let Some(file) = ["app.concat.editor", "org.standalones.concat"]
+        let Some(file) = [crate::brand::IDENTIFIER]
             .iter()
             .filter_map(|id| {
                 let home = std::env::var_os("HOME")?;

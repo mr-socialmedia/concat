@@ -704,7 +704,6 @@
   "start.couldNotOpenLink": "Не вдалося відкрити {0}: {1}",
   "start.create": "Створити",
   "start.creating": "Створення…",
-  "start.discordNote": "Ставте запитання й діліться своїми роботами",
   "start.documentation": "Документація",
   "start.documentationNote": "Посібник з кожної панелі та інструмента",
   "start.dropHint": "Також можна перетягнути в це вікно папку проєкту або медіа, щоб почати новий проєкт.",

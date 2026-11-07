@@ -47,7 +47,7 @@ pub trait Backend: Send {
     fn finish(&mut self) {}
 }
 
-/// Which backend `concat --mcp` uses.
+/// Which backend `cutzone --mcp` uses.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Mode {
     /// The window's server when it can be reached, this process otherwise.
@@ -81,7 +81,7 @@ pub fn open(mode: Mode) -> Result<Box<dyn Backend>, String> {
         Mode::Auto => match Window::find() {
             Ok(window) => Ok(Box::new(window)),
             Err(why) => {
-                eprintln!("concat mcp: working headless: {why}");
+                eprintln!("cutzone mcp: working headless: {why}");
                 Ok(Box::new(Headless::start()?))
             }
         },

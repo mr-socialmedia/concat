@@ -1,8 +1,8 @@
 {
-  # Concat on Nix, Linux only: the people asking for a flake run Linux, and
+  # CutZone on Nix, Linux only: the people asking for a flake run Linux, and
   # the macOS and Windows builds ship from release.yml.
   #
-  #   nix build            the editor window, ./result/bin/concat
+  #   nix build            the editor window, ./result/bin/cutzone
   #   nix run              build and launch it
   #   nix develop          a shell with everything `cargo run -p concat` needs
   #
@@ -26,7 +26,7 @@
   #   source, which the sandbox cannot do, so a mismatch fails loudly.
   #
   # Vulkan is loaded at run time, hence the LD_LIBRARY_PATH on the wrapper.
-  description = "Concat - free and open source video editor";
+  description = "CutZone - free and open source video editor";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -115,9 +115,9 @@
     in
     {
       packages = eachSystem (pkgs: rec {
-        default = concat;
-        concat = pkgs.rustPlatform.buildRustPackage {
-          pname = "concat";
+        default = cutzone;
+        cutzone = pkgs.rustPlatform.buildRustPackage {
+          pname = "cutzone";
           version = "0.2.9";
           src = self;
 
@@ -159,12 +159,12 @@
 
           desktopItems = [
             (pkgs.makeDesktopItem {
-              name = "concat";
-              exec = "concat";
-              icon = "concat";
-              desktopName = "Concat";
+              name = "cutzone";
+              exec = "cutzone";
+              icon = "cutzone";
+              desktopName = "CutZone";
               comment = "Free and open source video editor";
-              startupWMClass = "concat";
+              startupWMClass = "cutzone";
               categories = [
                 "AudioVideo"
                 "AudioVideoEditing"
@@ -174,15 +174,15 @@
 
           postInstall = ''
             install -Dm644 assets/concat_logo_512.png \
-              $out/share/icons/hicolor/512x512/apps/concat.png
+              $out/share/icons/hicolor/512x512/apps/cutzone.png
           '';
 
           meta = {
             description = "Free and open source video editor";
-            homepage = "https://github.com/jub0t/Concat";
+            homepage = "https://github.com/mr-socialmedia/concat";
             license = pkgs.lib.licenses.agpl3Plus;
             platforms = systems;
-            mainProgram = "concat";
+            mainProgram = "cutzone";
           };
         };
       });
@@ -205,7 +205,7 @@
           LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (runtimeLibs pkgs);
 
           shellHook = ''
-            echo "Concat: cd src && cargo run -p concat"
+            echo "CutZone: cd src && cargo run -p concat"
           '';
         };
       });

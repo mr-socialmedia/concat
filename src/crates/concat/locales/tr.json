@@ -704,7 +704,6 @@
   "start.couldNotOpenLink": "{0} açılamadı: {1}",
   "start.create": "Oluştur",
   "start.creating": "Oluşturuluyor…",
-  "start.discordNote": "Soru sorun ve yaptıklarınızı paylaşın",
   "start.documentation": "Belgeler",
   "start.documentationNote": "Her panel ve araç için bir rehber",
   "start.dropHint": "Bu pencereye bir proje klasörünü ya da yeni bir proje başlatmak için medyayı da bırakabilirsiniz.",

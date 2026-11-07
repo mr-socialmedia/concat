@@ -1,12 +1,12 @@
-; Concat's Windows installer.
+; CutZone's Windows installer.
 ;
 ; Built by build-app.yml with Inno Setup from the staged folder the .msi
 ; is also made of, so the two ship the same files; this is the one a
-; person double-clicks, and it puts Concat in the Start menu and can take
+; person double-clicks, and it puts CutZone in the Start menu and can take
 ; it out again. Everything it needs is handed in on the command line:
 ;
 ;   iscc /DVersion=0.2.9 /DArch=x64compatible /DSuffix=x86_64 ^
-;        /DStage=C:\...\stage\Concat-0.2.9-windows-x86_64 /DOut=C:\...\stage ^
+;        /DStage=C:\...\stage\CutZone-0.2.9-windows-x86_64 /DOut=C:\...\stage ^
 ;        assets\windows\concat.iss
 ;
 ; Arch is Inno's own word for the machine: x64compatible for the x86_64
@@ -32,23 +32,23 @@
 [Setup]
 ; One id for the life of the product, so an install over an older one is
 ; an upgrade and not a second copy.
-AppId={{7B1E5C3A-3B9E-4F0B-9C6D-2F1D0C0A0C47}
-AppName=Concat
+AppId={{612BB220-68BC-4A6D-923E-213B80826A59}
+AppName=CutZone
 AppVersion={#Version}
-AppVerName=Concat {#Version}
-AppPublisher=Concat contributors
-AppPublisherURL=https://github.com/jub0t/Concat
-AppSupportURL=https://github.com/jub0t/Concat/issues
-AppUpdatesURL=https://github.com/jub0t/Concat/releases
-DefaultDirName={autopf}\Concat
-DefaultGroupName=Concat
+AppVerName=CutZone {#Version}
+AppPublisher=CutZone contributors
+AppPublisherURL=https://github.com/mr-socialmedia/concat
+AppSupportURL=https://github.com/mr-socialmedia/concat/issues
+AppUpdatesURL=https://github.com/mr-socialmedia/concat/releases
+DefaultDirName={autopf}\CutZone
+DefaultGroupName=CutZone
 DisableProgramGroupPage=yes
 LicenseFile=..\..\LICENSE
 OutputDir={#Out}
-OutputBaseFilename=Concat-{#Version}-windows-{#Suffix}-setup
+OutputBaseFilename=CutZone-{#Version}-windows-{#Suffix}-setup
 SetupIconFile=..\icons\concat.ico
 UninstallDisplayIcon={app}\concat.ico
-UninstallDisplayName=Concat
+UninstallDisplayName=CutZone
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -108,11 +108,11 @@ Source: "{#Stage}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs crea
 Source: "..\icons\concat.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\Concat"; Filename: "{app}\concat.exe"; IconFilename: "{app}\concat.ico"
+Name: "{autoprograms}\CutZone"; Filename: "{app}\cutzone.exe"; IconFilename: "{app}\concat.ico"
 ; The way in when a graphics driver draws the window as coloured squares:
 ; it turns off Settings > General > Draw on the GPU, which that window hides.
-Name: "{autoprograms}\Concat (safe graphics)"; Filename: "{app}\concat.exe"; Parameters: "--software"; IconFilename: "{app}\concat.ico"
-Name: "{autodesktop}\Concat"; Filename: "{app}\concat.exe"; IconFilename: "{app}\concat.ico"; Tasks: desktopicon
+Name: "{autoprograms}\CutZone (safe graphics)"; Filename: "{app}\cutzone.exe"; Parameters: "--software"; IconFilename: "{app}\concat.ico"
+Name: "{autodesktop}\CutZone"; Filename: "{app}\cutzone.exe"; IconFilename: "{app}\concat.ico"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\concat.exe"; Description: "{cm:LaunchProgram,Concat}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\cutzone.exe"; Description: "{cm:LaunchProgram,CutZone}"; Flags: nowait postinstall skipifsilent

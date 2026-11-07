@@ -28,7 +28,7 @@ use concat_media::{EncodeOptions, Encoder, FrameSink, ReaderPool};
 use concat_render::{Compositor, WgpuCompositor, plan_frame};
 
 #[derive(Parser)]
-#[command(name = "concat-cli", version, about = "Concat engine command line")]
+#[command(name = "concat-cli", version, about = "CutZone engine command line")]
 struct Cli {
     #[command(subcommand)]
     command: Command,

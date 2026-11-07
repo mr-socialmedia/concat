@@ -6,7 +6,7 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
 
-const USAGE: &str = "usage: concat [--project <PROJECT_DIRECTORY> | --software | --mcp [auto|window|headless] | --schema | --version | --smoke | --whisper-cpu]";
+const USAGE: &str = "usage: cutzone [--project <PROJECT_DIRECTORY> | --software | --mcp [auto|window|headless] | --schema | --version | --smoke | --whisper-cpu]";
 
 /// What one run of the binary was asked to do.
 #[derive(Debug, PartialEq, Eq)]

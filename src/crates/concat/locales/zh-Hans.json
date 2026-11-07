@@ -704,7 +704,6 @@
   "start.couldNotOpenLink": "无法打开 {0}：{1}",
   "start.create": "创建",
   "start.creating": "正在创建…",
-  "start.discordNote": "提问并分享你的作品",
   "start.documentation": "文档",
   "start.documentationNote": "每个面板和工具的指南",
   "start.dropHint": "也可以将项目文件夹，或用于新建项目的媒体，拖放到此窗口。",

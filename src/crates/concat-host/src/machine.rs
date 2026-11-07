@@ -13,7 +13,8 @@
 /// built it from - "local" for a build from a working tree.
 pub fn build() -> String {
     format!(
-        "Concat {} · {}-{} · commit {}",
+        "{} {} · {}-{} · commit {}",
+        crate::brand::NAME,
         env!("CARGO_PKG_VERSION"),
         std::env::consts::OS,
         std::env::consts::ARCH,
@@ -327,7 +328,11 @@ mod tests {
 
     #[test]
     fn the_lines_say_something() {
-        assert!(build().starts_with(&format!("Concat {}", env!("CARGO_PKG_VERSION"))));
+        assert!(build().starts_with(&format!(
+            "{} {}",
+            crate::brand::NAME,
+            env!("CARGO_PKG_VERSION")
+        )));
         assert!(!system().is_empty());
         assert!(cpu().contains("threads"));
     }

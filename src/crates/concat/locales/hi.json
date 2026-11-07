@@ -704,7 +704,6 @@
   "start.couldNotOpenLink": "{0} नहीं खुल सका: {1}",
   "start.create": "बनाएं",
   "start.creating": "बनाया जा रहा है…",
-  "start.discordNote": "सवाल पूछें और अपना बनाया हुआ साझा करें",
   "start.documentation": "दस्तावेज़",
   "start.documentationNote": "हर पैनल और टूल की गाइड",
   "start.dropHint": "आप इस विंडो पर कोई प्रोजेक्ट फ़ोल्डर, या नया प्रोजेक्ट शुरू करने के लिए मीडिया भी छोड़ सकते हैं।",

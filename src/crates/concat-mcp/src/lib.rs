@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Jareer Abdullah
 
 //! Concat for AI agents: a Model Context Protocol server over standard
-//! input and output, shipped inside the app as `concat --mcp`.
+//! input and output, shipped inside the app as `cutzone --mcp`.
 //!
 //! It is a thin adapter, and deliberately so. Every tool is a
 //! [`concat_api::Request`] - a method of the API, or one of its edit
@@ -31,7 +31,7 @@ pub use backend::{Backend, Headless, Mode, Window};
 /// but protocol.
 pub fn run(mode: Mode) -> Result<(), String> {
     let backend = backend::open(mode)?;
-    eprintln!("concat mcp: serving through {}", backend.describe());
+    eprintln!("cutzone mcp: serving through {}", backend.describe());
     protocol::serve(
         std::io::BufReader::new(std::io::stdin()),
         std::io::stdout(),

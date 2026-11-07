@@ -43,13 +43,49 @@ or a locale value says "Concat" again.
   or a control, which needs 3:1. That token still has to be added.
 - `#A78BFA` on white: 2.72, fails. On light grounds use Midnight text and Deep Purple.
 
+## Lockups
+
+`logo-horizontal-{dark,dark-bg,light,white,black}.svg` carry the wordmark as **outlined paths**
+(no font needed to display them), shaped by HarfBuzz from Space Grotesk Bold with kerning and
+-0.025em tracking (the supplied file used -0.045em, tighter than the guideline's -0.02 to -0.03).
+Rebuild with `python3 scripts/build-wordmark.py` (needs `fonttools` and `uharfbuzz`; it downloads
+the font, which is SIL OFL 1.1 and is not committed). `light` uses Midnight and Deep Purple, which
+is 10:1 on white; `symbol.svg` and the dark lockups are for dark surfaces only.
+
+## What the rename covers, and what it deliberately leaves
+
+Renamed: the window, the executable (`cutzone`), the application identifier, the settings and
+models folder, the Linux package (deb, rpm, pacman, Nix), the Windows installers (with **new
+GUIDs**, so they never upgrade upstream's), the macOS and iOS bundles, the Android package and
+launcher icon, the MCP server's name, `--version` and `--help`, and the updater's repository.
+
+Kept on purpose, because changing them would break compatibility or upstream merges:
+the `concat-*` crate names and `-p concat`; the project format (`concat.json`, the `"concat"` key
+in project files, so projects open in both products); the API contract key; the effect author
+id; the `CONCAT_VERSION`/`CONCAT_STAGE` variables shared between CI steps; `concat-cli`
+(a developer tool the installers do not ship) and `concat-mcp`; the installer definition and
+icon file names (`concat.wxs`, `concat.iss`, `concat.ico`, `concat_logo_*.png`).
+
+`dirs.rs` keeps its "adopt a former folder" code but points it at a name nothing creates:
+upstream's former identifier would otherwise have moved another product's settings and models
+into CutZone's folder.
+
 ## Not done yet
 
-- Wordmark is live text in the supplied files; it must be converted to outlines with Space
-  Grotesk Bold (SIL OFL) before it ships. No light-background horizontal logo exists yet.
-- Space Grotesk, Inter and Cairo are not bundled in the app; the editor still uses its
-  existing fonts, with Noto Sans Arabic UI as the Arabic fallback.
-- Application identifier (`app.concat.editor`), the binary name and the installers.
-- Croatian strings keep the original grammar around the name (`CutZonea`, `CutZoneu`)
-  and need a native reader.
-- Trademark clearance for "CutZone" and the mark has not been done.
+- **Right-to-left layout.** Slint 1.18 has no layout-direction property (only
+  `FlexboxLayout`'s `row-reverse`), so mirroring is a refactor of ~220 `HorizontalLayout`s and
+  ~540 absolute `x:` positions across 75 files. The timeline, ruler and transport must stay
+  left-to-right (time does not reverse). It needs a way to see the window, which was not available.
+- Space Grotesk, Inter and Cairo are not bundled in the app; it keeps its existing fonts, with
+  Noto Sans Arabic UI as the Arabic fallback. Switching needs the same visual check.
+- **Nothing outside Linux x86-64 has been built or run**: the Windows, macOS, Android and iOS
+  packaging was renamed by reading it. The window crate type-checks, but its tests were not run
+  here (a 15 GB machine kills the compiler building them).
+- The application identifier `com.cutzone.app` is a placeholder; it is permanent once published.
+- The translated READMEs (`docs/README.*.md`) and `scripts/readme/` still describe Concat, and
+  `gen.py` rewrites the English README's language line: do not run it until it is ported.
+- AI models are still downloaded from upstream's `models-v1` release.
+- Croatian strings keep their original grammar around the name (`CutZonea`, `CutZoneu`) and
+  need a native reader.
+- No `TRADEMARK.md` for CutZone, and no trademark clearance for the name or the mark.
+- `.invalid` placeholder maintainer address in `assets/linux/nfpm.yaml`.

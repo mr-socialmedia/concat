@@ -61,8 +61,8 @@ const INSTRUCTIONS: &str = "Concat is a video editor; these tools edit its proje
 /// The server's name and version, as `serverInfo`.
 fn server_info() -> Value {
     json!({
-        "name": "concat",
-        "title": "Concat",
+        "name": "cutzone",
+        "title": "CutZone",
         "version": env!("CARGO_PKG_VERSION"),
     })
 }
@@ -127,7 +127,7 @@ pub fn serve(
             .spawn(move || read(input, &output, &cancels, &requests))
     };
     if reader.is_err() {
-        eprintln!("concat mcp: could not start the reader");
+        eprintln!("cutzone mcp: could not start the reader");
         return;
     }
     let toolbox = Toolbox::new();

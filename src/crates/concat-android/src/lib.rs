@@ -112,9 +112,9 @@ mod java {
     use jni::{Env, JavaVM, jni_sig, jni_str};
     use slint::android::AndroidApp;
 
-    /// The classes build.rs compiled: app.concat.editor.ConcatFiles.
+    /// The classes build.rs compiled: com.cutzone.app.ConcatFiles.
     const DEX: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/classes.dex"));
-    const CLASS_NAME: &str = "app.concat.editor.ConcatFiles";
+    const CLASS_NAME: &str = "com.cutzone.app.ConcatFiles";
 
     /// The fragment class, loaded once and kept.
     static CLASS: OnceLock<Global<JClass<'static>>> = OnceLock::new();
@@ -515,7 +515,7 @@ fn android_main(app: slint::android::AndroidApp) {
     // Directories first: the log file is written into one of them.
     activity::name_directories(&app);
     activity::open_log();
-    log::info!("Concat {} starting", env!("CARGO_PKG_VERSION"));
+    log::info!("CutZone {} starting", env!("CARGO_PKG_VERSION"));
     if let Err(error) = slint::android::init(app.clone()) {
         log::error!("could not start the Android backend: {error}");
         return;

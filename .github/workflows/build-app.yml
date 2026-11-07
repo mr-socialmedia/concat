@@ -1,13 +1,13 @@
 name: Build app
 
-# Builds Concat - the Slint window, `src/crates/concat` - for every
+# Builds CutZone - the Slint window, `src/crates/concat` - for every
 # platform and architecture it ships on, each on a runner of that
 # architecture so nothing is cross-compiled, and uploads one artifact per
 # target:
 #
-#   macOS    arm64 (Apple silicon)   x86_64 (Intel)     -> Concat-*.dmg
-#   Linux    x86_64                  aarch64            -> Concat-*.deb, .rpm, .AppImage, .pkg.tar.zst
-#   Windows  x86_64                  (aarch64, #326)    -> Concat-*-setup.exe, .msi
+#   macOS    arm64 (Apple silicon)   x86_64 (Intel)     -> CutZone-*.dmg
+#   Linux    x86_64                  aarch64            -> CutZone-*.deb, .rpm, .AppImage, .pkg.tar.zst
+#   Windows  x86_64                  (aarch64, #326)    -> CutZone-*-setup.exe, .msi
 #
 # Installers and binaries only: the program is not shipped as an archive
 # of a folder to unpack, so what a person downloads is what they run.
@@ -18,7 +18,7 @@ name: Build app
 # - The engine links FFmpeg and compiles whisper.cpp in, so a build needs the
 #   FFmpeg 7+ development libraries (headers and import libraries), cmake, a
 #   C++ toolchain and libclang for bindgen.
-# - FFmpeg is LGPL everywhere, with nothing GPL in it: Concat encodes H.264,
+# - FFmpeg is LGPL everywhere, with nothing GPL in it: CutZone encodes H.264,
 #   HEVC and AAC on the platform's own encoders. On macOS it is built here
 #   from source (src/scripts/ffmpeg-macos.sh) against Homebrew's BSD-licensed
 #   VP9, AV1 and Opus libraries, and travels with the app: the dylibs are
@@ -31,8 +31,8 @@ name: Build app
 #   set on the repository, and ad-hoc signed when they are not, so a build
 #   from a fork still opens (with Gatekeeper's warning).
 #
-# - Every bundle is launched before it is uploaded: `concat --version` and
-#   `concat --smoke` from the staged folder, on a machine with nothing else
+# - Every bundle is launched before it is uploaded: `cutzone --version` and
+#   `cutzone --smoke` from the staged folder, on a machine with nothing else
 #   on the path (scripts/ci/smoke-*). On x86_64 the bundle is also started
 #   under Intel's emulator posing as an Ivy Bridge, and its binaries are
 #   scanned for instructions newer than AVX (scripts/ci/isa-scan.sh): the
@@ -161,7 +161,7 @@ jobs:
             wix: x64
             ggml: variants
           # No Windows on ARM until its program starts: v0.2.7-rc.4's
-          # concat.exe died with an access violation on `--version` (#326).
+          # cutzone.exe died with an access violation on `--version` (#326).
           # Its row was platform windows, arch aarch64, os windows-11-arm,
           # target aarch64-pc-windows-msvc, ffmpeg winarm64, ort
           # win-arm64, llvm woa64, vc and inno and wix arm64.
@@ -229,7 +229,7 @@ jobs:
         run: |
           version=$(sed -n 's/^version = "\(.*\)"/\1/p' src/Cargo.toml | head -1)
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Building Concat $version for ${{ matrix.target }}"
+          echo "Building CutZone $version for ${{ matrix.target }}"
 
       # ── Linux ──────────────────────────────────────────────────────────
       # Slint's Skia renderer links fontconfig and freetype; cpal links
@@ -429,9 +429,9 @@ jobs:
           "$dir\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
 
       # ONNX Runtime on Windows: Microsoft's shared build, linked
-      # dynamically, and onnxruntime.dll shipped beside concat.exe.
+      # dynamically, and onnxruntime.dll shipped beside cutzone.exe.
       #
-      # Left to itself ort-sys links pyke's static build into concat.exe,
+      # Left to itself ort-sys links pyke's static build into cutzone.exe,
       # and that build is compiled for Haswell from end to end: BMI2
       # shifts in ordinary code, run at start-up, so 0.2.5 and 0.2.6 died
       # with STATUS_ILLEGAL_INSTRUCTION on every CPU before 2013 (#313).
@@ -523,13 +523,13 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          app=Concat.app
+          app=CutZone.app
           rm -rf "$app"
           mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$app/Contents/Frameworks"
-          cp "src/target/${{ matrix.target }}/app/concat" "$app/Contents/MacOS/concat"
+          cp "src/target/${{ matrix.target }}/app/cutzone" "$app/Contents/MacOS/cutzone"
 
           # The icon set Apple wants: each size and its @2x twin.
-          iconset=Concat.iconset
+          iconset=CutZone.iconset
           rm -rf "$iconset"; mkdir "$iconset"
           icons=assets/icons
           cp "$icons/concat_logo_16.png"  "$iconset/icon_16x16.png"
@@ -541,27 +541,27 @@ jobs:
           cp "$icons/concat_logo_256.png" "$iconset/icon_256x256.png"
           cp "$icons/concat_logo_512.png" "$iconset/icon_256x256@2x.png"
           cp "$icons/concat_logo_512.png" "$iconset/icon_512x512.png"
-          iconutil -c icns "$iconset" -o "$app/Contents/Resources/Concat.icns"
+          iconutil -c icns "$iconset" -o "$app/Contents/Resources/CutZone.icns"
 
           cat > "$app/Contents/Info.plist" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-            <key>CFBundleName</key><string>Concat</string>
-            <key>CFBundleDisplayName</key><string>Concat</string>
-            <key>CFBundleIdentifier</key><string>app.concat.editor</string>
+            <key>CFBundleName</key><string>CutZone</string>
+            <key>CFBundleDisplayName</key><string>CutZone</string>
+            <key>CFBundleIdentifier</key><string>com.cutzone.app</string>
             <key>CFBundleVersion</key><string>${VERSION}</string>
             <key>CFBundleShortVersionString</key><string>${VERSION}</string>
-            <key>CFBundleExecutable</key><string>concat</string>
-            <key>CFBundleIconFile</key><string>Concat</string>
+            <key>CFBundleExecutable</key><string>cutzone</string>
+            <key>CFBundleIconFile</key><string>CutZone</string>
             <key>CFBundlePackageType</key><string>APPL</string>
             <key>LSMinimumSystemVersion</key><string>${MACOSX_DEPLOYMENT_TARGET}</string>
             <key>NSHighResolutionCapable</key><true/>
             <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
             <key>LSApplicationCategoryType</key><string>public.app-category.video</string>
             <key>NSHumanReadableCopyright</key><string>AGPL-3.0-or-later. See THIRD_PARTY_NOTICES.md.</string>
-            <key>NSMicrophoneUsageDescription</key><string>Concat records voiceovers from your microphone.</string>
+            <key>NSMicrophoneUsageDescription</key><string>CutZone records voiceovers from your microphone.</string>
           </dict>
           </plist>
           PLIST
@@ -569,13 +569,13 @@ jobs:
           # Every non-system dylib the binary (and those dylibs) load, copied
           # in and re-pointed at @executable_path/../Frameworks.
           dylibbundler -od -b \
-            -x "$app/Contents/MacOS/concat" \
+            -x "$app/Contents/MacOS/cutzone" \
             -d "$app/Contents/Frameworks" \
             -p @executable_path/../Frameworks
 
           # Nothing outside the bundle may remain: a load path into
           # Homebrew would break on a Mac without it.
-          if otool -L "$app/Contents/MacOS/concat" | grep -E '/opt/homebrew|/usr/local' ; then
+          if otool -L "$app/Contents/MacOS/cutzone" | grep -E '/opt/homebrew|/usr/local' ; then
             echo "the binary still loads libraries from outside the bundle" >&2
             exit 1
           fi
@@ -585,7 +585,7 @@ jobs:
           # looks for (concat-vision's onnx.rs), and on Apple silicon it is
           # inside the binary. A link here is #333 back: the app closing at
           # launch on every macOS older than the runtime.
-          if otool -L "$app/Contents/MacOS/concat" | grep libonnxruntime ; then
+          if otool -L "$app/Contents/MacOS/cutzone" | grep libonnxruntime ; then
             echo "the binary links ONNX Runtime at launch" >&2
             exit 1
           fi
@@ -619,8 +619,8 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          app=Concat.app
-          dmg="Concat-${VERSION}-macos-${{ matrix.arch }}.dmg"
+          app=CutZone.app
+          dmg="CutZone-${VERSION}-macos-${{ matrix.arch }}.dmg"
           if [ -n "${CERT_P12}" ] && [ -n "${IDENTITY}" ]; then
             keychain=$RUNNER_TEMP/signing.keychain-db
             echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
@@ -636,12 +636,12 @@ jobs:
               codesign --force --options runtime --timestamp -s "$IDENTITY" {} \;
             # The hardened runtime keeps the microphone shut unless the app
             # says it records: the voiceover.
-            entitlements="$RUNNER_TEMP/concat.entitlements"
+            entitlements="$RUNNER_TEMP/cutzone.entitlements"
             printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
               '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
               '<plist version="1.0"><dict><key>com.apple.security.device.audio-input</key><true/></dict></plist>' \
               > "$entitlements"
-            codesign --force --options runtime --timestamp --entitlements "$entitlements" -s "$IDENTITY" "$app/Contents/MacOS/concat"
+            codesign --force --options runtime --timestamp --entitlements "$entitlements" -s "$IDENTITY" "$app/Contents/MacOS/cutzone"
             codesign --force --options runtime --timestamp --entitlements "$entitlements" -s "$IDENTITY" "$app"
             codesign --verify --deep --strict "$app"
           else
@@ -649,7 +649,7 @@ jobs:
             codesign --force --deep -s - "$app"
           fi
 
-          hdiutil create -volname Concat -srcfolder "$app" -ov -format UDZO "$dmg"
+          hdiutil create -volname CutZone -srcfolder "$app" -ov -format UDZO "$dmg"
 
           if [ -n "${APPLE_ID}" ] && [ -n "${TEAM_ID}" ] && [ -n "${APP_PASSWORD}" ] && [ -n "${IDENTITY}" ]; then
             codesign --force --timestamp -s "$IDENTITY" "$dmg"
@@ -665,7 +665,7 @@ jobs:
       - name: Smoke test (macOS)
         if: matrix.platform == 'macos'
         timeout-minutes: 10
-        run: scripts/ci/smoke-macos.sh Concat.app
+        run: scripts/ci/smoke-macos.sh CutZone.app
 
       # ── Package: Linux ─────────────────────────────────────────────────
       # The binary, the FFmpeg runtime libraries it loads from lib/ beside
@@ -676,9 +676,9 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          name="Concat-${VERSION}-linux-${{ matrix.arch }}"
+          name="CutZone-${VERSION}-linux-${{ matrix.arch }}"
           mkdir -p "stage/$name/lib"
-          cp "src/target/${{ matrix.target }}/app/concat" "stage/$name/concat"
+          cp "src/target/${{ matrix.target }}/app/cutzone" "stage/$name/cutzone"
           cp -a ffmpeg-dev/lib/*.so* "stage/$name/lib/"
           cp -a "$ORT_DIR"/lib/libonnxruntime.so* "stage/$name/lib/"
           # whisper's shared libraries and its CPU modules, one per x86_64
@@ -699,23 +699,23 @@ jobs:
                 || { echo "libggml-cpu-$module.so is missing from the build" >&2; exit 1; }
             done
           fi
-          cp assets/icons/concat_logo_256.png "stage/$name/concat.png"
-          cat > "stage/$name/concat.desktop" <<DESKTOP
+          cp assets/icons/concat_logo_256.png "stage/$name/cutzone.png"
+          cat > "stage/$name/cutzone.desktop" <<DESKTOP
           [Desktop Entry]
           Type=Application
-          Name=Concat
+          Name=CutZone
           Comment=Video editor
-          Exec=concat
-          Icon=concat
+          Exec=cutzone
+          Icon=cutzone
           Categories=AudioVideo;Video;
           Terminal=false
-          StartupWMClass=concat
+          StartupWMClass=cutzone
           DESKTOP
           cp LICENSE THIRD_PARTY_NOTICES.md "stage/$name/"
           # The binary must resolve every library from the folder alone.
           # The whole ldd report goes to the public summary when it does
           # not, so the failure names the library instead of just a step.
-          report=$(env -u LD_LIBRARY_PATH ldd "stage/$name/concat" || true)
+          report=$(env -u LD_LIBRARY_PATH ldd "stage/$name/cutzone" || true)
           if grep -i 'not found' <<<"$report"; then
             {
               echo "### Unresolved libraries: ${{ matrix.target }}"
@@ -749,7 +749,7 @@ jobs:
             tar -xJf sde.tar.xz -C sde --strip-components=1
             args+=(--sde "$PWD/sde/sde64")
           fi
-          scripts/ci/smoke-linux.sh "${args[@]}" "stage/Concat-${VERSION}-linux-${{ matrix.arch }}"
+          scripts/ci/smoke-linux.sh "${args[@]}" "stage/CutZone-${VERSION}-linux-${{ matrix.arch }}"
 
       # Every x86_64 binary in the folder, disassembled and counted for
       # instructions an Ivy Bridge does not have, against what
@@ -762,7 +762,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get install -y llvm
-          scripts/ci/isa-scan.sh "stage/Concat-${VERSION}-linux-${{ matrix.arch }}"
+          scripts/ci/isa-scan.sh "stage/CutZone-${VERSION}-linux-${{ matrix.arch }}"
 
       # Arch Linux package, from the same folder as the .deb and .rpm.
       # Arch ships x86_64 only, so aarch64 comes from Arch Linux ARM.
@@ -772,7 +772,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          name="Concat-${VERSION}-linux-${{ matrix.arch }}"
+          name="CutZone-${VERSION}-linux-${{ matrix.arch }}"
           pkgver="${VERSION//-/_}"
           image=archlinux:base-devel
           if [ "${{ matrix.arch }}" = aarch64 ]; then
@@ -802,12 +802,12 @@ jobs:
           docker run --rm --env CONCAT_VERSION="$pkgver" \
             -v "$work:/pkg" -w /pkg "$image" /pkg/build.sh
 
-          mv "$work"/concat-*.pkg.tar.zst "stage/$name.pkg.tar.zst"
+          mv "$work"/cutzone-*.pkg.tar.zst "stage/$name.pkg.tar.zst"
           rm -rf "$work"
           ls -l stage
 
       # The folder three ways. A .deb and an .rpm, from one description in
-      # assets/linux/nfpm.yaml: the program whole under /opt/concat, a
+      # assets/linux/nfpm.yaml: the program whole under /opt/cutzone, a
       # launcher on the path, a desktop entry and an icon. And an AppImage:
       # the folder as an AppDir, one file that runs on any distribution
       # with the toolkit installed, which every desktop has. All three from
@@ -820,15 +820,15 @@ jobs:
           ARCH: ${{ matrix.appimage }}
         run: |
           set -euo pipefail
-          name="Concat-${VERSION}-linux-${{ matrix.arch }}"
+          name="CutZone-${VERSION}-linux-${{ matrix.arch }}"
           export STAGE="$PWD/stage/$name"
 
           # What the packages add over the folder: the launcher, and a
           # desktop entry that names the program by its installed path.
           mkdir -p "$STAGE/pkg"
-          printf '#!/bin/sh\nexec /opt/concat/concat "$@"\n' > "$STAGE/pkg/concat"
-          chmod +x "$STAGE/pkg/concat"
-          sed 's|^Exec=concat|Exec=/opt/concat/concat %U|' "$STAGE/concat.desktop" > "$STAGE/pkg/concat.desktop"
+          printf '#!/bin/sh\nexec /opt/cutzone/cutzone "$@"\n' > "$STAGE/pkg/cutzone"
+          chmod +x "$STAGE/pkg/cutzone"
+          sed 's|^Exec=cutzone|Exec=/opt/cutzone/cutzone %U|' "$STAGE/cutzone.desktop" > "$STAGE/pkg/cutzone.desktop"
 
           scripts/ci/fetch.sh "nfpm-$( [ "${{ matrix.arch }}" = x86_64 ] && echo x86_64 || echo arm64 )" nfpm.tar.gz
           mkdir -p nfpm && tar -xzf nfpm.tar.gz -C nfpm
@@ -842,10 +842,10 @@ jobs:
           # The AppDir: the binary and its lib/ under usr/bin, so the
           # rpath holds; the desktop entry and icon at the root, where
           # the tool wants them; AppRun is the binary.
-          appdir="$PWD/Concat.AppDir"
+          appdir="$PWD/CutZone.AppDir"
           rm -rf "$appdir"
           mkdir -p "$appdir/usr/bin" "$appdir/usr/share/icons/hicolor/256x256/apps" "$appdir/usr/share/applications"
-          cp "$STAGE/concat" "$appdir/usr/bin/concat"
+          cp "$STAGE/cutzone" "$appdir/usr/bin/cutzone"
           cp -a "$STAGE/lib" "$appdir/usr/bin/lib"
           # The X11 keyboard library the window opens by name at start, the
           # core library under it, and the xcb extension under that: a machine
@@ -862,12 +862,12 @@ jobs:
           for lib in libxkbcommon.so.0 libxkbcommon-x11.so.0 libxcb-xkb.so.1; do
             cp -L "$(ldconfig -p | awk -v lib="$lib" '$1 == lib { print $NF; exit }')" "$appdir/usr/bin/lib/$lib"
           done
-          cp "$STAGE/concat.desktop" "$appdir/concat.desktop"
-          cp "$STAGE/concat.desktop" "$appdir/usr/share/applications/concat.desktop"
-          cp "$STAGE/concat.png" "$appdir/concat.png"
-          cp "$STAGE/concat.png" "$appdir/usr/share/icons/hicolor/256x256/apps/concat.png"
-          ln -s concat.png "$appdir/.DirIcon"
-          ln -s usr/bin/concat "$appdir/AppRun"
+          cp "$STAGE/cutzone.desktop" "$appdir/cutzone.desktop"
+          cp "$STAGE/cutzone.desktop" "$appdir/usr/share/applications/cutzone.desktop"
+          cp "$STAGE/cutzone.png" "$appdir/cutzone.png"
+          cp "$STAGE/cutzone.png" "$appdir/usr/share/icons/hicolor/256x256/apps/cutzone.png"
+          ln -s cutzone.png "$appdir/.DirIcon"
+          ln -s usr/bin/cutzone "$appdir/AppRun"
           # The tool and the runtime it puts at the head of the AppImage,
           # both a named release: left to itself the tool downloads the
           # runtime's `continuous` build as it runs.
@@ -877,7 +877,7 @@ jobs:
           # Extract-and-run: the runner has no FUSE to mount the tool with.
           # No "linux" in its name: every AppImage is for Linux, and the
           # AppImage catalog's check warns about names that say so.
-          appimage="stage/Concat-${VERSION}-${{ matrix.arch }}.AppImage"
+          appimage="stage/CutZone-${VERSION}-${{ matrix.arch }}.AppImage"
           ./appimagetool --appimage-extract-and-run --runtime-file appimage-runtime "$appdir" "$appimage"
           chmod +x "$appimage"
 
@@ -898,8 +898,8 @@ jobs:
           set -euo pipefail
           for image in ubuntu:22.04 debian:12; do
             scripts/ci/smoke-linux.sh --container "$image" \
-              "stage/Concat-${VERSION}-linux-${{ matrix.arch }}.deb" \
-              "stage/Concat-${VERSION}-${{ matrix.arch }}.AppImage"
+              "stage/CutZone-${VERSION}-linux-${{ matrix.arch }}.deb" \
+              "stage/CutZone-${VERSION}-${{ matrix.arch }}.AppImage"
           done
 
       # ── Package: Windows ───────────────────────────────────────────────
@@ -915,16 +915,16 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           $ErrorActionPreference = "Stop"
-          $name = "Concat-$env:VERSION-windows-${{ matrix.arch }}"
+          $name = "CutZone-$env:VERSION-windows-${{ matrix.arch }}"
           $dir = "stage\$name"
           New-Item -ItemType Directory -Force $dir | Out-Null
-          Copy-Item "src\target\${{ matrix.target }}\app\concat.exe" $dir
+          Copy-Item "src\target\${{ matrix.target }}\app\cutzone.exe" $dir
           Copy-Item "$env:FFMPEG_DIR\bin\*.dll" $dir
           Copy-Item "$env:ORT_DIR\lib\*.dll" $dir
           # whisper's DLLs and its CPU modules, one per x86_64 generation
           # (the job's `env` says why), from the bin\ whisper-rs-sys
           # installed them to; see the Linux stage for why not from beside
-          # the program. Beside concat.exe Windows finds the DLLs and
+          # the program. Beside cutzone.exe Windows finds the DLLs and
           # concat-speech's `cpu_backend` the modules.
           if ("${{ matrix.ggml }}" -eq "variants") {
             $built = Get-ChildItem "src\target\${{ matrix.target }}\app\build\whisper-rs-sys-*\out\bin\ggml-cpu-x64.dll" |
@@ -1000,12 +1000,12 @@ jobs:
           if (-not $signtool) { throw "signtool.exe is not in the Windows SDK" }
           "SIGNTOOL=$($signtool.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
           "SIGNING_THUMBPRINT=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append
-          $dir = "stage\Concat-$env:VERSION-windows-${{ matrix.arch }}"
+          $dir = "stage\CutZone-$env:VERSION-windows-${{ matrix.arch }}"
           $unsigned = Get-ChildItem $dir -Recurse -File -Include *.exe, *.dll |
             Where-Object { (Get-AuthenticodeSignature $_.FullName).Status -ne "Valid" }
           foreach ($file in $unsigned) {
             & $signtool.FullName sign /sha1 $cert.Thumbprint /s My /fd SHA256 `
-              /tr http://timestamp.digicert.com /td SHA256 /d Concat $file.FullName
+              /tr http://timestamp.digicert.com /td SHA256 /d CutZone $file.FullName
             if ($LASTEXITCODE -ne 0) { throw "signtool failed on $($file.Name)" }
           }
           Write-Host "Signed $(@($unsigned).Count) files."
@@ -1021,7 +1021,7 @@ jobs:
         shell: pwsh
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: scripts/ci/smoke-windows.ps1 -Bundle "stage\Concat-$env:VERSION-windows-${{ matrix.arch }}"
+        run: scripts/ci/smoke-windows.ps1 -Bundle "stage\CutZone-$env:VERSION-windows-${{ matrix.arch }}"
 
       # The same, then `--version` under Intel's emulator posing as an Ivy
       # Bridge (#313). A step of its own, after the plain smoke test: in
@@ -1049,7 +1049,7 @@ jobs:
           $sde = (Get-ChildItem sde -Recurse -Filter sde.exe | Select-Object -First 1).FullName
           if (-not $sde) { throw "sde.exe is not in the archive" }
           Write-Host "SDE at $sde"
-          scripts/ci/smoke-windows.ps1 -Bundle "stage\Concat-$env:VERSION-windows-x86_64" -Sde $sde
+          scripts/ci/smoke-windows.ps1 -Bundle "stage\CutZone-$env:VERSION-windows-x86_64" -Sde $sde
 
       # Every x86_64 binary in the folder, disassembled and counted for
       # instructions an Ivy Bridge does not have, against what
@@ -1061,7 +1061,7 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         # llvm-objdump from the LLVM installed above, on the path.
-        run: scripts/ci/isa-scan.sh "stage/Concat-${VERSION}-windows-${{ matrix.arch }}"
+        run: scripts/ci/isa-scan.sh "stage/CutZone-${VERSION}-windows-${{ matrix.arch }}"
 
       # The installers, from the checked folder: Inno Setup's .exe and
       # WiX's .msi, each signed when the folder was.
@@ -1072,11 +1072,11 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           $ErrorActionPreference = "Stop"
-          $name = "Concat-$env:VERSION-windows-${{ matrix.arch }}"
+          $name = "CutZone-$env:VERSION-windows-${{ matrix.arch }}"
           function Sign($file) {
             if (-not $env:SIGNING_THUMBPRINT) { return }
             & $env:SIGNTOOL sign /sha1 $env:SIGNING_THUMBPRINT /s My /fd SHA256 `
-              /tr http://timestamp.digicert.com /td SHA256 /d Concat $file
+              /tr http://timestamp.digicert.com /td SHA256 /d CutZone $file
             if ($LASTEXITCODE -ne 0) { throw "signtool failed on $file" }
           }
           # The installer, from that folder: Inno Setup, which the x64
@@ -1115,6 +1115,6 @@ jobs:
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: Concat-${{ matrix.platform }}-${{ matrix.arch }}
+          name: CutZone-${{ matrix.platform }}-${{ matrix.arch }}
           path: stage/*
           if-no-files-found: error

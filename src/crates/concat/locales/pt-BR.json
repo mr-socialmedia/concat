@@ -704,7 +704,6 @@
   "start.couldNotOpenLink": "Não foi possível abrir {0}: {1}",
   "start.create": "Criar",
   "start.creating": "Criando…",
-  "start.discordNote": "Tire dúvidas e compartilhe o que você fez",
   "start.documentation": "Documentação",
   "start.documentationNote": "Um guia de cada painel e ferramenta",
   "start.dropHint": "Você também pode soltar nesta janela uma pasta de projeto, ou mídia para começar um novo projeto.",

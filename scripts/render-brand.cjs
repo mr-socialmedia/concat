@@ -25,6 +25,15 @@ jobs.push({ svg: 'symbol-black.svg', size: 512, out: at('brand/exports/symbol-bl
 jobs.push({ svg: 'app-icon-fullbleed.svg', size: 1024, out: at('brand/exports/ios-appicon-1024.png'), opaque: true });
 jobs.push({ svg: 'app-icon-fullbleed.svg', size: 512, out: at('brand/exports/macos-source-512.png'), opaque: true });
 jobs.push({ svg: 'android-foreground.svg', size: 432, out: at('brand/exports/android-foreground-432.png') });
+// The shipping Android app's launcher icons (src/crates/concat-android/res). minSdk is 26, so
+// every phone uses the adaptive layers; the plain icon is the fallback for launchers that ignore them.
+const res = (...p) => at('src/crates/concat-android/res', ...p);
+const dpi = { mdpi: [48, 108], hdpi: [72, 162], xhdpi: [96, 216], xxhdpi: [144, 324], xxxhdpi: [192, 432] };
+for (const [d, [legacy, layer]] of Object.entries(dpi)) {
+  jobs.push({ svg: legacy <= 48 ? 'app-icon-simple.svg' : 'app-icon.svg', size: legacy, out: res(`mipmap-${d}`, 'ic_launcher.png') });
+  jobs.push({ svg: 'android-foreground.svg', size: layer, out: res(`mipmap-${d}`, 'ic_launcher_foreground.png') });
+  jobs.push({ svg: 'android-monochrome.svg', size: layer, out: res(`mipmap-${d}`, 'ic_launcher_monochrome.png') });
+}
 jobs.push({ svg: 'android-monochrome.svg', size: 432, out: at('brand/exports/android-monochrome-432.png') });
 
 (async () => {

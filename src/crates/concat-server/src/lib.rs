@@ -120,7 +120,7 @@ pub struct Config {
     /// user's home ([`home_root`]); to write anywhere, name `/`.
     pub roots: Vec<PathBuf>,
     /// Where to list the JSON-RPC address and the token while the server
-    /// runs, for a program on this machine to find it - `concat --mcp`,
+    /// runs, for a program on this machine to find it - `cutzone --mcp`,
     /// started by an agent. See [`discovery`]; removed when the server
     /// stops. `None` lists nothing.
     pub discovery: Option<PathBuf>,

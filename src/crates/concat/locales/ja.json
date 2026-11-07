@@ -704,7 +704,6 @@
   "start.couldNotOpenLink": "{0} を開けませんでした : {1}",
   "start.create": "作成",
   "start.creating": "作成中…",
-  "start.discordNote": "質問したり、作ったものを共有したり",
   "start.documentation": "ドキュメント",
   "start.documentationNote": "すべてのパネルとツールのガイド",
   "start.dropHint": "このウィンドウには、プロジェクトフォルダーや、新規プロジェクトを始めるためのメディアもドロップできます。",

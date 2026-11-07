@@ -704,7 +704,6 @@
   "start.couldNotOpenLink": "เปิด {0} ไม่ได้: {1}",
   "start.create": "สร้าง",
   "start.creating": "กำลังสร้าง…",
-  "start.discordNote": "ถามคำถามและแชร์ผลงานของคุณ",
   "start.documentation": "เอกสารประกอบ",
   "start.documentationNote": "คู่มือสำหรับทุกแผงและเครื่องมือ",
   "start.dropHint": "คุณยังวางโฟลเดอร์โปรเจกต์ หรือสื่อเพื่อเริ่มโปรเจกต์ใหม่ ลงบนหน้าต่างนี้ได้ด้วย",
