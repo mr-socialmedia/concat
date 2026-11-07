@@ -73,9 +73,14 @@ On a 24.5 s recording made from the repository's own human voice samples, with s
   English was exercised for the listening step, and only through the detector. Whisper's Arabic is
   weakest on dialects (Gulf, Egyptian, Levantine, Maghrebi) and on the smaller models; measure on your
   own recordings before relying on it.
-- **`--transcribe` has not completed a run here.** Whisper's models are fetched from huggingface.co,
-  which this machine's network does not allow; the project's own mirror answered 404 for
-  `ggml-tiny.bin`, the one file tried. The code path compiles and fails cleanly with that message.
+- **`--transcribe` completed one run here, in English with the `tiny` model**: the model downloaded,
+  the words came back timed to the detector's spans, and the captions followed the cut. Arabic was not
+  run. Whisper's models come from huggingface.co (the project's own mirror answered 404 for
+  `ggml-tiny.bin`), so a locked-down network must allow `huggingface.co` and the host it redirects to
+  (`us.aws.cdn.hf.co` here), or the models must be supplied by hand.
+- **Whisper's timing can be off.** In that run `tiny` put a trailing "up." inside a silence that was
+  then cut, about 1.8 s from where it was spoken, so its caption landed at the wrong moment. The cut
+  mapping was right; the input was not. Expect the same from small models and check Arabic on `small`.
 - Captions use the font family you give; the brand fonts are not bundled yet.
 - The debug build took 45 s for 17 s of 1080 x 1920 on a software renderer. A release build or a
   GPU will be much faster; it has not been measured.
