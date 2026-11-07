@@ -1523,7 +1523,7 @@ component VersionLine inherits HorizontalLayout {
     VerticalLayout {
         alignment: center;
         Text {
-            text: "Concat " + root.version;
+            text: "CutZone " + root.version;
             color: Theme.fg-dim;
             font-family: Theme.font-technical;
             font-size: Theme.fs-sm;
@@ -1569,16 +1569,12 @@ global Learn {
         name: "github", glyph: Glyph.github, external: true,
         title: "GitHub", note: I18n.t("start.githubNote"),
     };
-    out property <LearnItem> chat: {
-        name: "discord", glyph: Glyph.discord, external: true,
-        title: "Discord", note: I18n.t("start.discordNote"),
-    };
     out property <LearnItem> report: {
         name: "report", glyph: Glyph.bug, external: true,
         title: I18n.t("start.reportProblem"), note: I18n.t("start.reportProblemNote"),
     };
-    out property <[LearnItem]> desk: [docs, guide, keys, code, chat, report];
-    out property <[LearnItem]> phone: [docs, guide, code, chat, report];
+    out property <[LearnItem]> desk: [docs, guide, keys, code, report];
+    out property <[LearnItem]> phone: [docs, guide, code, report];
 }
 
 // The learn cards as a grid of rows, for the wide page under the projects

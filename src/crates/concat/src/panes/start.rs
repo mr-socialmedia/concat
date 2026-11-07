@@ -94,10 +94,8 @@ pub fn shown<'a>(
     shown
 }
 
-/// The official site, which the guides and the developer docs are pages of.
-const SITE: &str = "https://concat.standalones.org";
 /// The repository: the code, the issues, the releases.
-pub const REPOSITORY: &str = "https://github.com/jub0t/Concat";
+pub const REPOSITORY: &str = concat_host::brand::REPOSITORY;
 
 /// Where each of the launch screen's links goes, by the name the screen
 /// sends. One table, so a moved page is one line here. Every address is a
@@ -106,12 +104,9 @@ pub const REPOSITORY: &str = "https://github.com/jub0t/Concat";
 /// "shortcuts" is not here: it opens Settings, not a page.
 pub fn link(name: &str) -> Option<String> {
     Some(match name {
-        "guides" => format!("{SITE}/guides/"),
-        "first-edit" => format!("{SITE}/guides/first-edit/"),
-        "report" => format!("{SITE}/guides/report-a-problem/"),
+        "guides" | "first-edit" => concat_host::brand::DOCS.to_owned(),
+        "report" => concat_host::brand::REPORT.to_owned(),
         "github" => REPOSITORY.to_owned(),
-        // The invite the README carries.
-        "discord" => "https://discord.gg/DVuPfpXfqP".to_owned(),
         // The notes for the release this build is, under the tag the
         // release workflow pushes.
         "release-notes" => format!("{REPOSITORY}/releases/tag/v{}", env!("CARGO_PKG_VERSION")),
@@ -204,11 +199,19 @@ fn default_location() -> String {
 /// new project failed with EPERM. https://github.com/jub0t/Concat/issues/299
 fn location_on(os: &str, desktop: Option<PathBuf>, home: impl Fn(&str) -> String) -> String {
     match os {
-        "android" => home("Concat"),
-        "ios" => home("Documents/Concat"),
+        "android" => home(concat_host::brand::PROJECTS_FOLDER),
+        "ios" => home(&format!(
+            "Documents/{}",
+            concat_host::brand::PROJECTS_FOLDER
+        )),
         _ => desktop
-            .map(|desktop| desktop.join("Concat").to_string_lossy().into_owned())
-            .unwrap_or_else(|| home("Desktop/Concat")),
+            .map(|desktop| {
+                desktop
+                    .join(concat_host::brand::PROJECTS_FOLDER)
+                    .to_string_lossy()
+                    .into_owned()
+            })
+            .unwrap_or_else(|| home(&format!("Desktop/{}", concat_host::brand::PROJECTS_FOLDER))),
     }
 }
 
@@ -609,15 +612,15 @@ mod tests {
         let desktop = || Some(PathBuf::from("/desk"));
         assert_eq!(
             location_on("ios", desktop(), home),
-            "/home/Documents/Concat"
+            "/home/Documents/CutZone"
         );
-        assert_eq!(location_on("ios", None, home), "/home/Documents/Concat");
-        assert_eq!(location_on("android", None, home), "/home/Concat");
+        assert_eq!(location_on("ios", None, home), "/home/Documents/CutZone");
+        assert_eq!(location_on("android", None, home), "/home/CutZone");
         assert_eq!(
             PathBuf::from(location_on("macos", desktop(), home)),
-            Path::new("/desk").join("Concat")
+            Path::new("/desk").join("CutZone")
         );
-        assert_eq!(location_on("linux", None, home), "/home/Desktop/Concat");
+        assert_eq!(location_on("linux", None, home), "/home/Desktop/CutZone");
     }
 
     /// The next untitled name skips every folder already there, and starts
@@ -686,14 +689,7 @@ mod tests {
     /// notes are this build's tag.
     #[test]
     fn every_link_has_an_address() {
-        for name in [
-            "guides",
-            "first-edit",
-            "report",
-            "github",
-            "discord",
-            "release-notes",
-        ] {
+        for name in ["guides", "first-edit", "report", "github", "release-notes"] {
             assert!(
                 link(name).is_some_and(|url| url.starts_with("https://")),
                 "{name}"
