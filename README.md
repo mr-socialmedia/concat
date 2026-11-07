@@ -30,6 +30,7 @@ Everything the window does goes through one API, which three front doors expose:
 | `cutzone --mcp` | An MCP server over stdin/stdout, for AI agents. See [docs/MCP.md](docs/MCP.md). |
 | JSON-RPC (and gRPC) | `concat-cli serve`, or Settings > Automation in the window, for scripts and services. |
 | `concat-cli` | Probe, render and drive projects from a terminal. |
+| `concat-cli autopilot` | Talking footage to a captioned vertical video with the silence cut. See [docs/AUTOPILOT.md](docs/AUTOPILOT.md). |
 
 The API can read and write files as you can: turn it on only for programs you trust.
 
@@ -60,6 +61,8 @@ debug test build. Details: [CONTRIBUTING.md](CONTRIBUTING.md), [src/README.md](s
 | Visible name, window, update channel, default folders | Done and tested |
 | Icons, lockups with outlined wordmark, Android adaptive icon | Done; see [brand/](brand/) |
 | Arabic interface text | Complete (1009 strings) |
+| Autopilot: silence cut, 9:16 framing, Arabic captions that follow the cut | Works end to end on real speech and is checked by `scripts/e2e-autopilot.sh`; Arabic captions render correctly |
+| Autopilot: Arabic transcription | Wired to Whisper but **not run**: the models come from huggingface.co, unreachable here. Accuracy on Arabic dialects is unmeasured |
 | Right-to-left layout mirroring | **Not started.** Slint 1.18 has no layout-direction support, so it is a staged refactor of about 220 horizontal layouts |
 | Brand fonts (Space Grotesk, Inter, Cairo) inside the app | Not bundled |
 | Windows, Linux, macOS, Android, iOS packaging | Renamed, **not yet built or run** |

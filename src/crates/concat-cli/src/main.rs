@@ -120,6 +120,59 @@ enum Command {
         /// A package folder, or a folder of package folders.
         path: PathBuf,
     },
+
+    /// Turns talking footage into a vertical video with the silence cut out
+    /// and, when given the words, captions that follow the cut.
+    Autopilot {
+        /// The recording.
+        input: PathBuf,
+        /// Where to write the finished video. Without it, nothing is made.
+        #[arg(long)]
+        out: Option<PathBuf>,
+        /// Report what would be cut and change nothing.
+        #[arg(long)]
+        plan_only: bool,
+        /// Where the speech is, as JSON `[[start, end], ...]` in seconds,
+        /// instead of listening for it.
+        #[arg(long)]
+        spans: Option<PathBuf>,
+        /// What was said, as JSON `[{"start":0,"end":2,"text":"..."}]` in the
+        /// recording's own time. It is moved to follow the cut.
+        #[arg(long)]
+        segments: Option<PathBuf>,
+        /// Listen for the words with Whisper and caption them. The model is
+        /// downloaded the first time.
+        #[arg(long, conflicts_with = "segments")]
+        transcribe: bool,
+        /// The language spoken, as Whisper's code: `ar` for Arabic. Whisper
+        /// hears it when absent, which is less reliable than saying.
+        #[arg(long)]
+        language: Option<String>,
+        /// The Whisper model: tiny, base or small (the `.en` ones hear English
+        /// only). Arabic wants `small`; `tiny` and `base` are rough on it.
+        #[arg(long, default_value = "small")]
+        model: String,
+        /// Keep every pause.
+        #[arg(long)]
+        no_cut: bool,
+        /// A 16:9 frame instead of the vertical 9:16.
+        #[arg(long)]
+        landscape: bool,
+        /// A pause shorter than this many seconds is kept.
+        #[arg(long, default_value_t = 0.45)]
+        keep_pauses: f64,
+        /// Where the project folder is made. A new folder in the temporary
+        /// directory when absent.
+        #[arg(long)]
+        work_dir: Option<PathBuf>,
+        /// The caption font family.
+        #[arg(long, default_value = "Cairo")]
+        font_family: String,
+        /// A font file for the captions, registered under the family. Give a
+        /// static face per weight: a variable font's weight axis is ignored.
+        #[arg(long = "font")]
+        fonts: Vec<PathBuf>,
+    },
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -150,7 +203,229 @@ fn main() -> Result<(), Box<dyn Error>> {
             height,
         } => preview(&input, &output, &effect, width, height),
         Command::Check { path } => check(&path),
+        Command::Autopilot {
+            input,
+            out,
+            plan_only,
+            spans,
+            segments,
+            transcribe,
+            language,
+            model,
+            no_cut,
+            landscape,
+            keep_pauses,
+            work_dir,
+            font_family,
+            fonts,
+        } => autopilot(&AutopilotArgs {
+            input: &input,
+            out: out.as_deref(),
+            plan_only,
+            spans: spans.as_deref(),
+            segments: segments.as_deref(),
+            transcribe,
+            language: language.as_deref(),
+            model: &model,
+            no_cut,
+            landscape,
+            keep_pauses,
+            work_dir: work_dir.as_deref(),
+            font_family: &font_family,
+            fonts: &fonts,
+        }),
     }
+}
+
+struct AutopilotArgs<'a> {
+    input: &'a Path,
+    out: Option<&'a Path>,
+    plan_only: bool,
+    spans: Option<&'a Path>,
+    segments: Option<&'a Path>,
+    transcribe: bool,
+    language: Option<&'a str>,
+    model: &'a str,
+    no_cut: bool,
+    landscape: bool,
+    keep_pauses: f64,
+    work_dir: Option<&'a Path>,
+    font_family: &'a str,
+    fonts: &'a [PathBuf],
+}
+
+/// Reads `[[start, end], ...]`.
+fn read_spans(path: &Path) -> Result<Vec<concat_autopilot::cuts::Span>, Box<dyn Error>> {
+    let value: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(path)?)?;
+    value
+        .as_array()
+        .ok_or("the spans file must be a list")?
+        .iter()
+        .map(|pair| match (pair[0].as_f64(), pair[1].as_f64()) {
+            (Some(a), Some(b)) => Ok(concat_autopilot::cuts::Span::new(a, b)),
+            _ => Err("each span must be [start, end] in seconds".into()),
+        })
+        .collect()
+}
+
+/// Reads `[{"start": 0, "end": 2, "text": "..."}]`.
+fn read_segments(path: &Path) -> Result<Vec<concat_autopilot::captions::Segment>, Box<dyn Error>> {
+    let value: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(path)?)?;
+    value
+        .as_array()
+        .ok_or("the segments file must be a list")?
+        .iter()
+        .map(|item| {
+            match (
+                item["start"].as_f64(),
+                item["end"].as_f64(),
+                item["text"].as_str(),
+            ) {
+                (Some(start), Some(end), Some(text)) => Ok(concat_autopilot::captions::Segment {
+                    start,
+                    end,
+                    text: text.to_owned(),
+                }),
+                _ => Err("each segment needs a start, an end and a text".into()),
+            }
+        })
+        .collect()
+}
+
+/// Listens to a recording, plans the cut and, given `--out`, makes the video.
+fn autopilot(args: &AutopilotArgs) -> Result<(), Box<dyn Error>> {
+    use concat_autopilot::captions::{self, CaptionOptions, Segment};
+    use concat_autopilot::cuts::{self, CutOptions};
+    use concat_autopilot::run::{self, CaptionStyle, Job, Video};
+
+    let path = args.input.to_str().ok_or("the path is not valid text")?;
+    let summary = concat_host::media::probe(path)?;
+    let duration = summary
+        .duration
+        .ok_or("the file does not say how long it is")?;
+    let dirs = concat_host::dirs::AppDirs::locate()?;
+
+    let options = CutOptions {
+        min_gap: args.keep_pauses,
+        ..CutOptions::default()
+    };
+    let (speech, plan) = if args.no_cut {
+        (Vec::new(), None)
+    } else {
+        let speech = match args.spans {
+            Some(file) => read_spans(file)?,
+            None => concat_autopilot::analyze::speech_in(&dirs, args.input, duration)?,
+        };
+        let plan = cuts::plan(&speech, duration, options)?;
+        (speech, Some(plan))
+    };
+    let spans = |list: &[concat_autopilot::cuts::Span]| {
+        list.iter()
+            .map(|s| serde_json::json!([round(s.start), round(s.end)]))
+            .collect::<Vec<_>>()
+    };
+    let mut report = serde_json::json!({ "file": path, "duration": round(duration) });
+    if let Some(plan) = &plan {
+        report["speech"] = spans(&speech).into();
+        report["keep"] = spans(&plan.keep).into();
+        report["cuts"] = spans(&plan.cuts()).into();
+        report["keptSeconds"] = round(plan.kept()).into();
+        report["removedSeconds"] = round(plan.removed()).into();
+        report["removedPercent"] = round(100.0 * plan.removed() / plan.total).into();
+    }
+    let Some(out) = args.out.filter(|_| !args.plan_only) else {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    };
+
+    // The words, moved to where they now are.
+    let said: Vec<Segment> = match args.segments {
+        Some(file) => read_segments(file)?,
+        None if args.transcribe => concat_autopilot::hear::transcribe(
+            &dirs,
+            args.input,
+            duration,
+            args.model,
+            args.language,
+            &|line| eprintln!("autopilot: {line}"),
+        )?,
+        None => Vec::new(),
+    };
+    report["heard"] = serde_json::json!(
+        said.iter()
+            .map(|s| serde_json::json!({ "start": round(s.start), "end": round(s.end), "text": s.text }))
+            .collect::<Vec<_>>()
+    );
+    let moved: Vec<Segment> = match &plan {
+        Some(plan) => said
+            .iter()
+            .filter_map(|s| {
+                plan.remap_range(s.start, s.end).map(|r| Segment {
+                    start: r.start,
+                    end: r.end,
+                    text: s.text.clone(),
+                })
+            })
+            .collect(),
+        None => said.clone(),
+    };
+    let captions = captions::build(&moved, &CaptionOptions::default());
+
+    let work = match args.work_dir {
+        Some(dir) => dir.to_path_buf(),
+        None => std::env::temp_dir().join("cutzone-autopilot"),
+    };
+    std::fs::create_dir_all(&work)?;
+    let fonts: Vec<(String, PathBuf)> = args
+        .fonts
+        .iter()
+        .map(|file| (args.font_family.to_owned(), file.clone()))
+        .collect();
+    let style = CaptionStyle {
+        font_family: args.font_family.to_owned(),
+        ..CaptionStyle::default()
+    };
+    let video = if args.landscape {
+        Video::LANDSCAPE
+    } else {
+        Video::VERTICAL
+    };
+
+    let mut api = concat_api::Api::with_dirs(dirs, run::silent());
+    let made = run::run(
+        &mut api,
+        &Job {
+            input: args.input,
+            output: out,
+            work_dir: &work,
+            video,
+            fill: !args.landscape,
+            plan: plan.as_ref(),
+            captions: &captions,
+            style: &style,
+            fonts: &fonts,
+        },
+    )?;
+    let finished =
+        concat_host::media::probe(out.to_str().ok_or("the output path is not valid text")?)?;
+    report["output"] = serde_json::json!({
+        "file": out,
+        "duration": finished.duration.map(round),
+        "width": finished.video.as_ref().map(|v| v.width),
+        "height": finished.video.as_ref().map(|v| v.height),
+        "hasAudio": finished.audio.is_some(),
+    });
+    report["project"] = serde_json::json!(made.project);
+    report["cutsApplied"] = made.cuts_applied.into();
+    report["cutsSkipped"] = spans(&made.cuts_skipped).into();
+    report["captions"] = made.captions.into();
+    println!("{}", serde_json::to_string_pretty(&report)?);
+    Ok(())
+}
+
+/// Seconds to the millisecond, for a report a person reads.
+fn round(seconds: f64) -> f64 {
+    (seconds * 1000.0).round() / 1000.0
 }
 
 /// The stdin transport. Every line in is one call; every line out is one

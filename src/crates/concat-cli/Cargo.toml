@@ -25,6 +25,8 @@ serde_json.workspace = true
 concat-effects.workspace = true
 concat-host.workspace = true
 clap.workspace = true
+# The `autopilot` command: silence cut, captions and framing for talking footage.
+concat-autopilot.workspace = true
 
 [features]
 # `serve --grpc`. Off by default; see concat-server.

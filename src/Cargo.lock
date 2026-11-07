@@ -1224,11 +1224,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "concat-autopilot"
+version = "0.2.9"
+dependencies = [
+ "concat-api",
+ "concat-host",
+ "concat-speech",
+ "serde_json",
+]
+
+[[package]]
 name = "concat-cli"
 version = "0.2.9"
 dependencies = [
  "clap",
  "concat-api",
+ "concat-autopilot",
  "concat-core",
  "concat-effects",
  "concat-host",

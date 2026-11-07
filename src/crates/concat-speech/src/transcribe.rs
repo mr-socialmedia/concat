@@ -397,6 +397,46 @@ fn speech_spans(dirs: &AppDirs, samples: &[f32], threads: usize) -> Option<Vec<(
         .ok()
 }
 
+/// Where the speech is in a file's sound, as `(start, end)` seconds from the
+/// beginning of the stretch asked for, by the same Silero detector the
+/// transcriber runs first. `window` is how much to read, or all of it when
+/// `None`; `audio_stream` is the stream by index, the first when `None`.
+///
+/// An empty list is a real answer - music or silence alone - and is not an
+/// error. An error means the sound could not be read or the detector could
+/// not run, which is never to be taken for "no speech": a caller that cut
+/// the footage on it would cut everything.
+pub fn find_speech(
+    dirs: &AppDirs,
+    path: &str,
+    audio_stream: Option<u32>,
+    start: f64,
+    window: Option<f64>,
+) -> Result<Vec<(f64, f64)>, String> {
+    let mut decoder = AudioDecoder::open(
+        path,
+        &AudioOptions {
+            start: Some(start),
+            duration: window,
+            filters: Vec::new(),
+            rate: SAMPLE_RATE,
+            channels: 1,
+            format: SampleFormat::F32,
+            stream: audio_stream.map(|index| index as usize),
+        },
+    )
+    .map_err(|error| error.to_string())?;
+    let samples = decoder.collect_f32().map_err(|error| error.to_string())?;
+    if samples.is_empty() {
+        return Err("the file has no audio to listen to".to_owned());
+    }
+    let threads = std::thread::available_parallelism()
+        .map(|count| count.get().saturating_sub(2).clamp(1, 8))
+        .unwrap_or(4);
+    speech_spans(dirs, &samples, threads)
+        .ok_or_else(|| "voice detection could not run; see the log".to_owned())
+}
+
 /// What whisper is given to hear: the speech of the sound, cut out and
 /// laid end to end, and where each piece of it came from - so a time in
 /// what whisper heard can be told as a time in the sound.
@@ -1336,6 +1376,83 @@ mod tests {
             assert_eq!(*upstream, model_upstream(model.id));
             assert!(model.approx_bytes > 0);
         }
+    }
+
+    /// A scratch folder for the detector's model file, which is written
+    /// beside the settings, and is unique to the test.
+    fn scratch(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("concat-speech-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        dir
+    }
+
+    /// Silence as a 16 kHz mono 16-bit WAV file: a header and zeroes.
+    fn silent_wav(path: &std::path::Path, seconds: u32) {
+        let data = 16_000 * 2 * seconds;
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(b"RIFF");
+        bytes.extend_from_slice(&(36 + data).to_le_bytes());
+        bytes.extend_from_slice(b"WAVEfmt ");
+        bytes.extend_from_slice(&16u32.to_le_bytes());
+        bytes.extend_from_slice(&1u16.to_le_bytes()); // PCM
+        bytes.extend_from_slice(&1u16.to_le_bytes()); // mono
+        bytes.extend_from_slice(&16_000u32.to_le_bytes());
+        bytes.extend_from_slice(&32_000u32.to_le_bytes());
+        bytes.extend_from_slice(&2u16.to_le_bytes());
+        bytes.extend_from_slice(&16u16.to_le_bytes());
+        bytes.extend_from_slice(b"data");
+        bytes.extend_from_slice(&data.to_le_bytes());
+        bytes.resize(bytes.len() + data as usize, 0);
+        std::fs::write(path, bytes).expect("a silent wav");
+    }
+
+    /// A human voice is found, inside the stretch asked for.
+    #[test]
+    fn speech_is_found_in_a_voice() {
+        let dir = scratch("voice");
+        let voice = concat!(env!("CARGO_MANIFEST_DIR"), "/voices/mark-f-smith.flac");
+        let spans = find_speech(&AppDirs::under(&dir), voice, None, 0.0, Some(10.0))
+            .expect("the voice is heard");
+        let spoken: f64 = spans.iter().map(|(a, b)| b - a).sum();
+        assert!(
+            spoken > 4.0,
+            "a ten-second reading is mostly speech: {spans:?}"
+        );
+        assert!(
+            spans
+                .iter()
+                .all(|(a, b)| *a >= 0.0 && *b > *a && *b <= 10.05),
+            "{spans:?}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Silence is an answer - no speech - and not an error, so a caller never
+    /// takes "could not listen" for "nothing was said" and cuts everything.
+    #[test]
+    fn silence_has_no_speech_and_is_not_an_error() {
+        let dir = scratch("silence");
+        std::fs::create_dir_all(&dir).expect("a folder");
+        let file = dir.join("silence.wav");
+        silent_wav(&file, 3);
+        let spans = find_speech(
+            &AppDirs::under(&dir),
+            file.to_str().unwrap(),
+            None,
+            0.0,
+            None,
+        )
+        .expect("silence can be listened to");
+        assert!(spans.is_empty(), "{spans:?}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A file that cannot be read is an error, never an empty list.
+    #[test]
+    fn a_missing_file_is_an_error_and_not_silence() {
+        let dir = scratch("missing");
+        assert!(find_speech(&AppDirs::under(&dir), "/no/such/file.wav", None, 0.0, None).is_err());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

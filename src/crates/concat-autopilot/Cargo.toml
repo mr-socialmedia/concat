@@ -1,0 +1,19 @@
+[package]
+name = "concat-autopilot"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "CutZone's autopilot: from raw talking footage to a captioned, silence-free vertical video, through the engine's own API."
+
+[dependencies]
+serde_json.workspace = true
+# Where the speech is: the same Silero detector the transcriber runs first.
+concat-speech.workspace = true
+concat-host.workspace = true
+# The engine's own dispatcher: the autopilot edits through the same API a script or an agent uses.
+concat-api.workspace = true
+
+[lints]
+workspace = true
