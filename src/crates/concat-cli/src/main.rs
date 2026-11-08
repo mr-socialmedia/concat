@@ -175,10 +175,19 @@ enum Command {
     },
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
     // A crash names the module it happened in on standard error, as the
     // window's does; see concat-host's crash.rs.
     concat_host::crash::catch();
+    // A failure is told in words. Returning the error from `main` would print its
+    // debug form, `Error: NoSpeech`, where its message says what happened.
+    if let Err(error) = run() {
+        eprintln!("Error: {error}");
+        std::process::exit(1);
+    }
+}
+
+fn run() -> Result<(), Box<dyn Error>> {
     match Cli::parse().command {
         Command::Probe { path } => probe(&path),
         Command::Render {
