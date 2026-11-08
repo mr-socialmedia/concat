@@ -254,9 +254,16 @@ struct AutopilotArgs<'a> {
     fonts: &'a [PathBuf],
 }
 
+/// A JSON file's text. Windows PowerShell and Notepad begin a UTF-8 file with a byte-order mark,
+/// which is not JSON, so it is dropped.
+fn read_json(path: &Path) -> Result<serde_json::Value, Box<dyn Error>> {
+    let text = std::fs::read_to_string(path)?;
+    Ok(serde_json::from_str(text.trim_start_matches('\u{feff}'))?)
+}
+
 /// Reads `[[start, end], ...]`.
 fn read_spans(path: &Path) -> Result<Vec<concat_autopilot::cuts::Span>, Box<dyn Error>> {
-    let value: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(path)?)?;
+    let value = read_json(path)?;
     value
         .as_array()
         .ok_or("the spans file must be a list")?
@@ -270,7 +277,7 @@ fn read_spans(path: &Path) -> Result<Vec<concat_autopilot::cuts::Span>, Box<dyn 
 
 /// Reads `[{"start": 0, "end": 2, "text": "..."}]`.
 fn read_segments(path: &Path) -> Result<Vec<concat_autopilot::captions::Segment>, Box<dyn Error>> {
-    let value: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(path)?)?;
+    let value = read_json(path)?;
     value
         .as_array()
         .ok_or("the segments file must be a list")?

@@ -14,7 +14,10 @@
 set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cli=${1:-$root/src/target/debug/concat-cli}
+[ -x "$cli" ] || { [ -x "$cli.exe" ] && cli=$cli.exe; }   # Windows builds are concat-cli.exe
 [ -x "$cli" ] || { echo "no concat-cli at $cli: build it first" >&2; exit 2; }
+# Windows has python and the py launcher, not python3.
+py=python3; command -v python3 >/dev/null || py=python; command -v "$py" >/dev/null || py="py -3"
 command -v ffmpeg >/dev/null || { echo "ffmpeg is needed to make the test recording" >&2; exit 2; }
 
 voices=$root/src/crates/concat-speech/voices
@@ -29,6 +32,9 @@ if [ ! -d /dev/dri ] && [ -f /usr/share/vulkan/icd.d/lvp_icd.json ]; then
 fi
 # The detector's model is written beside the settings: keep the test's out of the real ones.
 export XDG_DATA_HOME=$work/data XDG_CONFIG_HOME=$work/config
+if command -v cygpath >/dev/null; then   # Git Bash: Windows keeps them under these, in Windows paths
+  export APPDATA=$(cygpath -w "$work/config") LOCALAPPDATA=$(cygpath -w "$work/data")
+fi
 
 ffmpeg -v error -y -t 6 -i "$voices/mark-f-smith.flac" -ar 16000 -ac 1 a.wav
 ffmpeg -v error -y -t 6 -i "$voices/elizabeth-klett.flac" -ar 16000 -ac 1 b.wav
@@ -51,7 +57,7 @@ fonts=()
 "$cli" autopilot talk.mp4 --out out.mp4 --segments segments.json --work-dir proj "${fonts[@]}" > report.json 2> stderr.txt
 "$cli" autopilot out.mp4 --plan-only > again.json 2>/dev/null
 
-python3 - <<'PY'
+$py - <<'PY'
 import json, sys
 r = json.load(open("report.json")); again = json.load(open("again.json"))
 out = r["output"]; failures = []
