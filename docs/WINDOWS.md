@@ -1,5 +1,54 @@
 # Trying CutZone on Windows
 
+## First: Smart App Control can stop a native build
+
+A native Rust build on Windows produces many unsigned programs (every crate's `build-script-build.exe`,
+every procedural-macro `.dll`). **Smart App Control** blocks unsigned code, and a build that runs into it
+fails in confusing ways: Windows shows "Some features of cargo.exe may not work because we can't confirm
+who published build-script-build.exe", and rustc reports `can't find crate for ...` for a `.dll` that is
+on disk. That is what was seen on the first Windows try. Check it:
+
+```powershell
+(Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy").VerifiedAndReputablePolicyState
+```
+
+`1` is on, `2` is evaluation mode (it is still learning and may switch itself on), `0` is off.
+
+**Smart App Control can be turned off but not back on** without resetting or reinstalling Windows.
+Choose deliberately:
+
+| Path | Cost |
+|---|---|
+| **A. WSL2 (recommended for trying the autopilot)** | Nothing is turned off. The build runs in Linux, the path that has been verified. Windows files are reachable at `/mnt/c/...`. |
+| **B. Native Windows** | Needs Smart App Control off, permanently. Only worth it for the Windows window and installers, which are untested. |
+
+### A. WSL2
+
+```powershell
+wsl --install -d Ubuntu          # as administrator; restart when asked; set a Linux user name
+```
+
+Then, inside Ubuntu (build in the Linux home folder, not under `/mnt/c`: it is far faster):
+
+```sh
+git clone https://github.com/mr-socialmedia/concat ~/concat && cd ~/concat
+git checkout claude/laughing-lovelace-lt1w8w
+source scripts/linux-dev-env.sh        # installs packages, FFmpeg 7+, ONNX Runtime, Rust
+cd src && cargo build -p concat-cli
+cd .. && scripts/e2e-autopilot.sh      # seven PASS lines
+src/target/debug/concat-cli autopilot "/mnt/c/Users/YOU/Videos/talk.mp4" --out ~/reel.mp4
+explorer.exe .                         # opens the folder in Windows to watch reel.mp4
+```
+
+WSL has no GPU adapter unless GPU support is set up, so the script names the software Vulkan driver.
+Rendering is slower than on a GPU but works.
+
+### B. Native Windows
+
+Only if you accept turning Smart App Control off (Windows Security, App and browser control, Smart App
+Control settings, Off). Then continue below.
+
+
 **Nothing here has been built or run on Windows.** Everything in this repository was verified on
 Linux x86-64. The steps mirror the Windows job in `.github/workflows/ci.yml`, which does build there,
 but `scripts/windows-dev-env.ps1` itself has not been run. Report what breaks.
