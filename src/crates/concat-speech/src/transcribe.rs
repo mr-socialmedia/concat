@@ -171,9 +171,13 @@ struct KnownModel {
 
 /// The models the settings panel offers, fastest first.
 ///
-/// All from the official `ggerganov/whisper.cpp` conversions. Nothing bigger
-/// than `small`: `medium` is 1.5 GB and minutes-per-minute on CPU, which is
-/// the opposite of what this feature is for.
+/// All from the official `ggerganov/whisper.cpp` conversions. Upstream Concat
+/// offered nothing bigger than `small`: `medium` is 1.5 GB and
+/// minutes-per-minute on CPU, which is the opposite of what a live caption
+/// feature is for. CutZone adds one larger model, `large-v3-turbo-q5_0`
+/// (574 MB, compressed), because the small ones are noticeably weak on Arabic
+/// and its dialects, and a caption you must correct by hand is slower than a
+/// transcription that takes longer.
 const KNOWN_MODELS: &[KnownModel] = &[
     KnownModel {
         id: "tiny.en",
@@ -218,9 +222,17 @@ const KNOWN_MODELS: &[KnownModel] = &[
     KnownModel {
         id: "small",
         label: "Small (Multilingual)",
-        blurb: "Best quality offered, any language.",
+        blurb: "Good quality, any language.",
         approx_bytes: 487_601_967,
         sha256: "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b",
+        english_only: false,
+    },
+    KnownModel {
+        id: "large-v3-turbo-q5_0",
+        label: "Large v3 Turbo (Multilingual, compressed)",
+        blurb: "Best quality offered, and far better on Arabic and dialects; several times slower than small.",
+        approx_bytes: 574_041_195,
+        sha256: "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
         english_only: false,
     },
 ];

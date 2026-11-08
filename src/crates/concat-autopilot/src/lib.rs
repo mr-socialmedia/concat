@@ -12,5 +12,6 @@
 pub mod analyze;
 pub mod captions;
 pub mod cuts;
+pub mod fonts;
 pub mod hear;
 pub mod run;

@@ -9,6 +9,10 @@ concat-cli autopilot talk.mp4 --plan-only                      # what would be c
 concat-cli autopilot talk.mp4 --out reel.mp4                   # cut and frame
 concat-cli autopilot talk.mp4 --out reel.mp4 --segments words.json
 concat-cli autopilot talk.mp4 --out reel.mp4 --transcribe --language ar --model small
+# Better Arabic: the large model, then check the words before rendering
+concat-cli autopilot talk.mp4 --plan-only --transcribe --language ar --model large-v3-turbo-q5_0 --words-out words.json
+#   ...edit words.json by hand, then:
+concat-cli autopilot talk.mp4 --out reel.mp4 --segments words.json --font-style tajawal
 ```
 
 | Option | |
@@ -16,10 +20,13 @@ concat-cli autopilot talk.mp4 --out reel.mp4 --transcribe --language ar --model 
 | `--plan-only` | Prints the speech, the stretches kept and the pauses cut, as JSON. |
 | `--spans FILE` | `[[start, end], ...]` in seconds: use these instead of listening. |
 | `--segments FILE` | `[{"start":0,"end":2,"text":"..."}]` in the recording's own time. They are moved to follow the cut. |
-| `--transcribe`, `--language ar`, `--model small` | Hear the words with Whisper. `small` for Arabic; `tiny` and `base` are rough on it. |
+| `--transcribe`, `--language ar`, `--model small` | Hear the words with Whisper. `small` for Arabic; `tiny` and `base` are rough on it. `large-v3-turbo-q5_0` (574 MB, several times slower) is the best offered and far better on Arabic and dialects. |
+| `--words-out FILE` | Writes what was heard in the `--segments` format, also with `--plan-only`, so it can be corrected and given back. |
+| `--fix FILE` | `{"wrong": "right"}` applied to whole words of what was heard or given (longest first; "كتب" is not found inside "مكتبة"). Good for names and brands. |
 | `--keep-pauses 0.45` | A pause shorter than this many seconds stays. |
 | `--no-cut`, `--landscape` | Keep every pause; keep 16:9. |
-| `--font FILE` (repeat), `--font-family Cairo` | Caption faces. Give a **static** face per weight. |
+| `--font-style cairo\|tajawal\|almarai` | Built-in caption look, no install needed (default `cairo`). Compare them in [captions-fonts.png](captions-fonts.png). |
+| `--font FILE` (repeat), `--font-family NAME` | Your own face instead. Give a **static** face per weight. |
 
 ## What happens
 
@@ -81,7 +88,10 @@ On a 24.5 s recording made from the repository's own human voice samples, with s
 - **Whisper's timing can be off.** In that run `tiny` put a trailing "up." inside a silence that was
   then cut, about 1.8 s from where it was spoken, so its caption landed at the wrong moment. The cut
   mapping was right; the input was not. Expect the same from small models and check Arabic on `small`.
-- Captions use the font family you give; the brand fonts are not bundled yet.
+- Caption fonts (Cairo Black, Tajawal ExtraBold, Almarai ExtraBold; SIL OFL) are built in. The brand
+  fonts are still not bundled in the editor's interface.
+- **Accuracy of the large model on Arabic is not measured here**; it was only run on English
+  (it loads, verifies and transcribes). Wrong words are best fixed with `--words-out` and `--fix`.
 - The debug build took 45 s for 17 s of 1080 x 1920 on a software renderer. A release build or a
   GPU will be much faster; it has not been measured.
 

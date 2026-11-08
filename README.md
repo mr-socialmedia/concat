@@ -64,7 +64,7 @@ debug test build. Details: [CONTRIBUTING.md](CONTRIBUTING.md), [src/README.md](s
 | Autopilot: silence cut, 9:16 framing, Arabic captions that follow the cut | Works end to end on real speech and is checked by `scripts/e2e-autopilot.sh`; Arabic captions render correctly |
 | Autopilot: transcription | Runs end to end with Whisper (checked in English, `tiny`). **Arabic has not been run** and its accuracy on dialects is unmeasured |
 | Right-to-left layout mirroring | **Not started.** Slint 1.18 has no layout-direction support, so it is a staged refactor of about 220 horizontal layouts |
-| Brand fonts (Space Grotesk, Inter, Cairo) inside the app | Not bundled |
+| Caption fonts (Cairo, Tajawal, Almarai) | Built into the autopilot; the editor's interface fonts are not bundled |
 | Windows, Linux, macOS, Android, iOS packaging | Renamed, **not yet built or run** |
 | AI models | Still downloaded from the upstream project's release; to be mirrored |
 | Identifier `com.cutzone.app` | **Placeholder** until a domain is registered; permanent once published |

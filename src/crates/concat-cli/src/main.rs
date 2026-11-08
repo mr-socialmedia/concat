@@ -148,10 +148,19 @@ enum Command {
         /// hears it when absent, which is less reliable than saying.
         #[arg(long)]
         language: Option<String>,
-        /// The Whisper model: tiny, base or small (the `.en` ones hear English
-        /// only). Arabic wants `small`; `tiny` and `base` are rough on it.
+        /// The Whisper model: tiny, base, small or large-v3-turbo-q5_0 (the
+        /// `.en` ones hear English only). Arabic wants `small` at least; the
+        /// large one is far better on Arabic and dialects, and slower.
         #[arg(long, default_value = "small")]
         model: String,
+        /// Write what was heard to this file, in the `--segments` format, so
+        /// it can be corrected by hand and given back with `--segments`.
+        #[arg(long)]
+        words_out: Option<PathBuf>,
+        /// Corrections as JSON `{"wrong": "right"}`, applied to whole words
+        /// of what was heard or given.
+        #[arg(long)]
+        fix: Option<PathBuf>,
         /// Keep every pause.
         #[arg(long)]
         no_cut: bool,
@@ -165,11 +174,16 @@ enum Command {
         /// directory when absent.
         #[arg(long)]
         work_dir: Option<PathBuf>,
-        /// The caption font family.
-        #[arg(long, default_value = "Cairo")]
-        font_family: String,
-        /// A font file for the captions, registered under the family. Give a
-        /// static face per weight: a variable font's weight axis is ignored.
+        /// A caption look built into the program: cairo (heavy, the brand
+        /// face), tajawal (clean, modern) or almarai (rounder).
+        #[arg(long, default_value = "cairo")]
+        font_style: String,
+        /// Use an installed or supplied family instead of a built-in style.
+        #[arg(long)]
+        font_family: Option<String>,
+        /// A font file for the captions, registered under `--font-family`.
+        /// Give a static face per weight: a variable font's weight axis is
+        /// ignored.
         #[arg(long = "font")]
         fonts: Vec<PathBuf>,
     },
@@ -221,10 +235,13 @@ fn run() -> Result<(), Box<dyn Error>> {
             transcribe,
             language,
             model,
+            words_out,
+            fix,
             no_cut,
             landscape,
             keep_pauses,
             work_dir,
+            font_style,
             font_family,
             fonts,
         } => autopilot(&AutopilotArgs {
@@ -236,11 +253,14 @@ fn run() -> Result<(), Box<dyn Error>> {
             transcribe,
             language: language.as_deref(),
             model: &model,
+            words_out: words_out.as_deref(),
+            fix: fix.as_deref(),
             no_cut,
             landscape,
             keep_pauses,
             work_dir: work_dir.as_deref(),
-            font_family: &font_family,
+            font_style: &font_style,
+            font_family: font_family.as_deref(),
             fonts: &fonts,
         }),
     }
@@ -255,11 +275,14 @@ struct AutopilotArgs<'a> {
     transcribe: bool,
     language: Option<&'a str>,
     model: &'a str,
+    words_out: Option<&'a Path>,
+    fix: Option<&'a Path>,
     no_cut: bool,
     landscape: bool,
     keep_pauses: f64,
     work_dir: Option<&'a Path>,
-    font_family: &'a str,
+    font_style: &'a str,
+    font_family: Option<&'a str>,
     fonts: &'a [PathBuf],
 }
 
@@ -280,6 +303,21 @@ fn read_spans(path: &Path) -> Result<Vec<concat_autopilot::cuts::Span>, Box<dyn 
         .map(|pair| match (pair[0].as_f64(), pair[1].as_f64()) {
             (Some(a), Some(b)) => Ok(concat_autopilot::cuts::Span::new(a, b)),
             _ => Err("each span must be [start, end] in seconds".into()),
+        })
+        .collect()
+}
+
+/// Reads `{"wrong": "right", ...}`.
+fn read_fixes(path: &Path) -> Result<Vec<(String, String)>, Box<dyn Error>> {
+    read_json(path)?
+        .as_object()
+        .ok_or("the fix file must be an object of \"wrong\": \"right\"")?
+        .iter()
+        .map(|(wrong, right)| {
+            right
+                .as_str()
+                .map(|r| (wrong.clone(), r.to_owned()))
+                .ok_or_else(|| format!("the correction for {wrong:?} must be text").into())
         })
         .collect()
 }
@@ -349,13 +387,9 @@ fn autopilot(args: &AutopilotArgs) -> Result<(), Box<dyn Error>> {
         report["removedSeconds"] = round(plan.removed()).into();
         report["removedPercent"] = round(100.0 * plan.removed() / plan.total).into();
     }
-    let Some(out) = args.out.filter(|_| !args.plan_only) else {
-        println!("{}", serde_json::to_string_pretty(&report)?);
-        return Ok(());
-    };
-
-    // The words, moved to where they now are.
-    let said: Vec<Segment> = match args.segments {
+    // The words: given, heard, or none. Heard before the early return so that
+    // `--plan-only --transcribe --words-out` can hand them over for correcting.
+    let mut said: Vec<Segment> = match args.segments {
         Some(file) => read_segments(file)?,
         None if args.transcribe => concat_autopilot::hear::transcribe(
             &dirs,
@@ -367,11 +401,31 @@ fn autopilot(args: &AutopilotArgs) -> Result<(), Box<dyn Error>> {
         )?,
         None => Vec::new(),
     };
-    report["heard"] = serde_json::json!(
+    if let Some(file) = args.fix {
+        let fixes = read_fixes(file)?;
+        let mut changed = 0;
+        for segment in &mut said {
+            let (text, n) = captions::apply_glossary(&segment.text, &fixes);
+            segment.text = text;
+            changed += n;
+        }
+        report["fixed"] = changed.into();
+    }
+    let heard = serde_json::json!(
         said.iter()
             .map(|s| serde_json::json!({ "start": round(s.start), "end": round(s.end), "text": s.text }))
             .collect::<Vec<_>>()
     );
+    if let Some(file) = args.words_out {
+        std::fs::write(file, serde_json::to_string_pretty(&heard)?)?;
+        report["wordsFile"] = serde_json::json!(file);
+    }
+    report["heard"] = heard;
+    let Some(out) = args.out.filter(|_| !args.plan_only) else {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    };
+
     let moved: Vec<Segment> = match &plan {
         Some(plan) => said
             .iter()
@@ -392,14 +446,37 @@ fn autopilot(args: &AutopilotArgs) -> Result<(), Box<dyn Error>> {
         None => std::env::temp_dir().join("cutzone-autopilot"),
     };
     std::fs::create_dir_all(&work)?;
-    let fonts: Vec<(String, PathBuf)> = args
-        .fonts
-        .iter()
-        .map(|file| (args.font_family.to_owned(), file.clone()))
-        .collect();
-    let style = CaptionStyle {
-        font_family: args.font_family.to_owned(),
-        ..CaptionStyle::default()
+    let (fonts, style) = match args.font_family {
+        // The caller's own family and files.
+        Some(family) => (
+            args.fonts
+                .iter()
+                .map(|file| (family.to_owned(), file.clone()))
+                .collect::<Vec<_>>(),
+            CaptionStyle {
+                font_family: family.to_owned(),
+                ..CaptionStyle::default()
+            },
+        ),
+        // One of the faces built into the program.
+        None => {
+            let font = concat_autopilot::fonts::FontStyle::parse(args.font_style)
+                .ok_or("--font-style must be cairo, tajawal or almarai")?;
+            let mut fonts = vec![font.install(&work.join("fonts"))?];
+            fonts.extend(
+                args.fonts
+                    .iter()
+                    .map(|f| (font.family().to_owned(), f.clone())),
+            );
+            (
+                fonts,
+                CaptionStyle {
+                    font_family: font.family().to_owned(),
+                    font_weight: font.weight(),
+                    ..CaptionStyle::default()
+                },
+            )
+        }
     };
     let video = if args.landscape {
         Video::LANDSCAPE

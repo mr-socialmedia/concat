@@ -69,6 +69,46 @@ fn takes_no_width(c: char) -> bool {
         | '\u{200B}'..='\u{200F}' | '\u{202A}'..='\u{202E}' | '\u{2066}'..='\u{2069}')
 }
 
+/// Whether `c` belongs inside a word for the purpose of finding one: letters,
+/// digits and the marks that sit on letters.
+fn in_word(c: char) -> bool {
+    c.is_alphanumeric() || takes_no_width(c) && c != '\u{200B}'
+}
+
+/// Replaces whole words in `text` using `fixes` (wrong, right). A word is a
+/// run of letters, digits and Arabic marks, so "كتب" is not found inside
+/// "مكتبة". The longest wrong form is tried first, so a phrase wins over a
+/// word it contains. Returns the text and how many replacements were made.
+pub fn apply_glossary(text: &str, fixes: &[(String, String)]) -> (String, usize) {
+    let mut order: Vec<&(String, String)> = fixes.iter().filter(|(w, _)| !w.is_empty()).collect();
+    order.sort_by_key(|(w, _)| std::cmp::Reverse(w.chars().count()));
+    let chars: Vec<char> = text.chars().collect();
+    let mut out = String::with_capacity(text.len());
+    let mut count = 0;
+    let mut i = 0;
+    'scan: while i < chars.len() {
+        let starts_word = i == 0 || !in_word(chars[i - 1]);
+        if starts_word {
+            for (wrong, right) in &order {
+                let w: Vec<char> = wrong.chars().collect();
+                let end = i + w.len();
+                if end <= chars.len()
+                    && chars[i..end] == w[..]
+                    && (end == chars.len() || !in_word(chars[end]))
+                {
+                    out.push_str(right);
+                    count += 1;
+                    i = end;
+                    continue 'scan;
+                }
+            }
+        }
+        out.push(chars[i]);
+        i += 1;
+    }
+    (out, count)
+}
+
 /// How wide `text` is, in letters as a reader counts them.
 pub fn display_len(text: &str) -> usize {
     text.chars().filter(|c| !takes_no_width(*c)).count()
@@ -164,6 +204,36 @@ fn hold(captions: &mut [Caption], options: &CaptionOptions) {
 
 #[cfg(test)]
 mod tests {
+    fn fx(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
+        pairs
+            .iter()
+            .map(|(a, b)| (a.to_string(), b.to_string()))
+            .collect()
+    }
+
+    #[test]
+    fn glossary_replaces_whole_words_only() {
+        let (t, n) = apply_glossary("كتب مكتبة كتب", &fx(&[("كتب", "كتاب")]));
+        assert_eq!(t, "كتاب مكتبة كتاب");
+        assert_eq!(n, 2);
+    }
+
+    #[test]
+    fn glossary_prefers_the_longest_match_and_handles_punctuation() {
+        let f = fx(&[("كات زون", "CutZone"), ("كات", "قط")]);
+        let (t, n) = apply_glossary("اهلا في كات زون، وكات.", &f);
+        assert_eq!(t, "اهلا في CutZone، وكات.");
+        assert_eq!(n, 1);
+        let (t, _) = apply_glossary("كات.", &f);
+        assert_eq!(t, "قط.");
+    }
+
+    #[test]
+    fn glossary_with_nothing_to_fix_changes_nothing() {
+        assert_eq!(apply_glossary("hello", &[]), ("hello".to_owned(), 0));
+        assert_eq!(apply_glossary("hello", &fx(&[("", "x")])).1, 0);
+    }
+
     use super::*;
 
     fn seg(start: f64, end: f64, text: &str) -> Segment {
