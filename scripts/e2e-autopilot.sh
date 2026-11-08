@@ -36,6 +36,13 @@ if command -v cygpath >/dev/null; then   # Git Bash: Windows keeps them under th
   export APPDATA=$(cygpath -w "$work/config") LOCALAPPDATA=$(cygpath -w "$work/data")
 fi
 
+# The system's ffmpeg must use the system's libraries. LD_LIBRARY_PATH points at the FFmpeg that
+# concat-cli links: LGPL, so without libx264, but with the same library names as a system FFmpeg of
+# the same major version, which would load them and fail with "Unknown encoder 'libx264'".
+ffmpeg() { LD_LIBRARY_PATH= command ffmpeg "$@"; }
+venc=(-c:v libx264 -preset veryfast)
+ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libx264 || venc=(-c:v mpeg4 -q:v 3)
+
 ffmpeg -v error -y -t 6 -i "$voices/mark-f-smith.flac" -ar 16000 -ac 1 a.wav
 ffmpeg -v error -y -t 6 -i "$voices/elizabeth-klett.flac" -ar 16000 -ac 1 b.wav
 ffmpeg -v error -y -t 5 -i "$voices/bob-neufeld.flac" -ar 16000 -ac 1 c.wav
@@ -43,7 +50,7 @@ for s in 3 2.5 2; do ffmpeg -v error -y -f lavfi -i anullsrc=r=16000:cl=mono -t 
 printf "file 'a.wav'\nfile 's3.wav'\nfile 'b.wav'\nfile 's2.5.wav'\nfile 'c.wav'\nfile 's2.wav'\n" > list.txt
 ffmpeg -v error -y -f concat -safe 0 -i list.txt -c copy talk.wav
 ffmpeg -v error -y -f lavfi -i testsrc2=size=1280x720:rate=30 -i talk.wav -t 24.5 \
-  -c:v libx264 -preset veryfast -pix_fmt yuv420p -c:a aac -shortest talk.mp4
+  "${venc[@]}" -pix_fmt yuv420p -c:a aac -shortest talk.mp4
 
 cat > segments.json <<'J'
 [{"start":0.6,"end":5.9,"text":"مرحبًا بكم في CutZone، اليوم سنتعلم كيف نحرّر الفيديو بسرعة"},
